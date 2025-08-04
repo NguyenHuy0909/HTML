@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Đồ thị y = ax + b</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+  <h2>Vẽ đồ thị y = ax + b</h2>
+
+  <label>a: <input type="range" min="-10" max="10" step="0.1" value="1" id="aSlider" /></label>
+  <span id="aVal">1</span><br/>
+
+  <label>b: <input type="range" min="-10" max="10" step="0.1" value="0" id="bSlider" /></label>
+  <span id="bVal">0</span><br/>
+
+  <div id="plot"></div>
+
+  <script>
+    const aSlider = document.getElementById("aSlider");
+    const bSlider = document.getElementById("bSlider");
+    const aVal = document.getElementById("aVal");
+    const bVal = document.getElementById("bVal");
+
+    function drawPlot() {
+      const a = parseFloat(aSlider.value);
+      const b = parseFloat(bSlider.value);
+      aVal.innerText = a;
+      bVal.innerText = b;
+
+      let x = [], y = [];
+      for (let i = -10; i <= 10; i += 0.5) {
+        x.push(i);
+        y.push(a * i + b);
+      }
+
+      const trace = {
+        x: x,
+        y: y,
+        type: 'scatter',
+        name: `y = ${a}x + ${b}`
+      };
+
+      Plotly.newPlot('plot', [trace], {
+        title: 'Đồ thị y = ax + b',
+        xaxis: { title: 'x' },
+        yaxis: { title: 'y' }
+      });
+    }
+
+    // Khởi tạo
+    drawPlot();
+
+    // Lắng nghe thay đổi
+    aSlider.oninput = drawPlot;
+    bSlider.oninput = drawPlot;
+  </script>
+</body>
+</html>
