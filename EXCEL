@@ -1,1 +1,17 @@
-=RIGHT(CELL("filename", A1), LEN(CELL("filename", A1)) - FIND("]", CELL("filename", A1)))
+```vba
+Sub AddSeries_To_Chart6_From_Sheet4()
+    Dim wsChart As Worksheet, wsData As Worksheet
+    Dim ch As Chart
+
+    Set wsChart = Worksheets("Sheet1")
+    Set wsData  = Worksheets("Sheet 4") 'tên có khoảng trắng
+
+    Set ch = wsChart.ChartObjects("Chart 6").Chart  'Chart 6 trên Sheet1
+
+    With ch.SeriesCollection.NewSeries
+        .Name = "='Sheet 4'!$F$1"
+        .XValues = "='Sheet 4'!$B$7:$B$67"
+        .Values = "='Sheet 4'!$C$7:$C$67"
+    End With
+End Sub
+```
