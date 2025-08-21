@@ -1,34 +1,32 @@
-Sub DoiKieuSeries_KhongCanChonBieuDo()
+Sub ChangeColorFor9Series()
     Dim ch As Chart
     Dim s As Series
-    Dim tenSeries As String
     Dim i As Integer
-    Dim timThay As Boolean
 
-    tenSeries = "Tên Series Cần Đổi" ' ← Thay bằng tên thực tế
-    timThay = False
+    ' Set reference to the active chart (you can change this to a specific chart if needed)
+    Set ch = ActiveChart
 
-    ' Truy cập trực tiếp biểu đồ theo tên trên sheet hiện tại
-    Set ch = ActiveSheet.ChartObjects("Chart 1").Chart
+    ' Define an array of 9 custom RGB colors
+    Dim colors(1 To 9) As Long
+    colors(1) = RGB(255, 0, 0)     ' Red
+    colors(2) = RGB(0, 128, 0)     ' Green
+    colors(3) = RGB(0, 0, 255)     ' Blue
+    colors(4) = RGB(255, 165, 0)   ' Orange
+    colors(5) = RGB(128, 0, 128)   ' Purple
+    colors(6) = RGB(0, 255, 255)   ' Cyan
+    colors(7) = RGB(255, 192, 203) ' Pink
+    colors(8) = RGB(128, 128, 0)   ' Olive
+    colors(9) = RGB(0, 0, 0)       ' Black
 
-    ' Duyệt qua từng series
-    For i = 1 To ch.SeriesCollection.Count
-        If ch.SeriesCollection(i).Name = tenSeries Then
-            Set s = ch.SeriesCollection(i)
-            timThay = True
-            Exit For
-        End If
+    ' Loop through the first 9 series and assign a specific color to each
+    For i = 1 To 9
+        Set s = ch.FullSeriesCollection(i)
+        With s.Format.Line
+            .Visible = msoTrue               ' Make the line visible
+            .ForeColor.RGB = colors(i)       ' Set the line color
+            .Transparency = 0                ' No transparency
+        End With
     Next i
 
-    ' Nếu tìm thấy thì đổi kiểu
-    If timThay Then
-        With s.Format.Line
-            .ForeColor.RGB = RGB(0, 102, 204)       ' Màu xanh dương
-            .DashStyle = msoLineDashDot             ' Kiểu gạch – chấm
-            .Weight = 2.25                          ' Độ dày
-        End With
-        MsgBox "Đã đổi kiểu cho series '" & tenSeries & "'"
-    Else
-        MsgBox "Không tìm thấy series '" & tenSeries & "'", vbExclamation
-    End If
+    MsgBox "Colors have been updated for 9 series.", vbInformation
 End Sub
