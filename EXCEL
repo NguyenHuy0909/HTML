@@ -1,17 +1,19 @@
-```vba
-Sub AddSeries_To_Chart6_From_Sheet4()
-    Dim wsChart As Worksheet, wsData As Worksheet
-    Dim ch As Chart
+Sub ThemSeriesMoi()
+    Dim cht As ChartObject
+    Dim newSeries As Series
 
-    Set wsChart = Worksheets("Sheet1")
-    Set wsData  = Worksheets("Sheet 4") 'tên có khoảng trắng
+    ' Giả sử đang dùng biểu đồ đầu tiên trong sheet
+    Set cht = ActiveSheet.ChartObjects(1)
 
-    Set ch = wsChart.ChartObjects("Chart 6").Chart  'Chart 6 trên Sheet1
+    ' Thêm series mới vào chart
+    Set newSeries = cht.Chart.SeriesCollection.NewSeries
 
-    With ch.SeriesCollection.NewSeries
-        .Name = "='Sheet 4'!$F$1"
-        .XValues = "='Sheet 4'!$B$7:$B$67"
-        .Values = "='Sheet 4'!$C$7:$C$67"
+    ' Gán dữ liệu cho series mới (ví dụ: cột A là x, cột B là y)
+    With newSeries
+        .XValues = ActiveSheet.Range("A2:A10")
+        .Values = ActiveSheet.Range("B2:B10")
+        .Name = "Series mới"
     End With
+
+    MsgBox "Đã thêm series mới vào biểu đồ!"
 End Sub
-```
