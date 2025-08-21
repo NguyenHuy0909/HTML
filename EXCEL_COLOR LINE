@@ -1,0 +1,34 @@
+Sub DoiKieuSeries_KhongCanChonBieuDo()
+    Dim ch As Chart
+    Dim s As Series
+    Dim tenSeries As String
+    Dim i As Integer
+    Dim timThay As Boolean
+
+    tenSeries = "Tên Series Cần Đổi" ' ← Thay bằng tên thực tế
+    timThay = False
+
+    ' Truy cập trực tiếp biểu đồ theo tên trên sheet hiện tại
+    Set ch = ActiveSheet.ChartObjects("Chart 1").Chart
+
+    ' Duyệt qua từng series
+    For i = 1 To ch.SeriesCollection.Count
+        If ch.SeriesCollection(i).Name = tenSeries Then
+            Set s = ch.SeriesCollection(i)
+            timThay = True
+            Exit For
+        End If
+    Next i
+
+    ' Nếu tìm thấy thì đổi kiểu
+    If timThay Then
+        With s.Format.Line
+            .ForeColor.RGB = RGB(0, 102, 204)       ' Màu xanh dương
+            .DashStyle = msoLineDashDot             ' Kiểu gạch – chấm
+            .Weight = 2.25                          ' Độ dày
+        End With
+        MsgBox "Đã đổi kiểu cho series '" & tenSeries & "'"
+    Else
+        MsgBox "Không tìm thấy series '" & tenSeries & "'", vbExclamation
+    End If
+End Sub
