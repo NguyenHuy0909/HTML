@@ -1,0 +1,36 @@
+Sub ToggleSpec1VisibilityInCharts()
+    Dim chartNames As Variant
+    Dim ch As Chart
+    Dim co As ChartObject
+    Dim s As Series
+    Dim i As Integer, j As Integer
+
+    ' Danh sách tên biểu đồ cần xử lý
+    chartNames = Array("Chart 1", "Chart 2", "Chart 3")
+
+    For i = LBound(chartNames) To UBound(chartNames)
+        On Error Resume Next
+        Set co = ActiveSheet.ChartObjects(chartNames(i))
+        If Not co Is Nothing Then
+            Set ch = co.Chart
+
+            ' Duyệt tất cả series trong biểu đồ
+            For j = 1 To ch.FullSeriesCollection.Count
+                Set s = ch.FullSeriesCollection(j)
+                If s.Name = "Spec-1" Then
+                    With s.Format.Line
+                        ' Toggle trạng thái: nếu đang ẩn thì hiện, nếu đang hiện thì ẩn
+                        If .Visible = msoFalse Then
+                            .Visible = msoTrue
+                        Else
+                            .Visible = msoFalse
+                        End If
+                    End With
+                End If
+            Next j
+        End If
+        Set co = Nothing
+    Next i
+
+    MsgBox "Đã đổi trạng thái hiển thị Spec-1 trong các biểu đồ!", vbInformation
+End Sub
