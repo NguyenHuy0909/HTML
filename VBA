@@ -1,0 +1,36 @@
+Option Explicit
+
+Sub Import_By_3PlusSpaces_Short()
+    Dim p$, f%, s$, r&, c&, rx As Object, ws As Worksheet, parts, t
+    
+    p = Application.GetOpenFilename("Text files,*.txt;*.log,*.*,*.*")
+    If p = "False" Then Exit Sub
+    
+    Set ws = GetOrCreate("Data"): ws.Cells.Clear
+    Set rx = CreateObject("VBScript.RegExp")
+    rx.Global = True: rx.Pattern = " {3,}"      ' delimiter = ≥3 khoảng trắng
+    
+    Application.ScreenUpdating = False
+    f = FreeFile: Open p For Input As #f
+    Do Until EOF(f)
+        Line Input #f, s
+        s = rx.Replace(s, vbTab)                ' đổi cụm ≥3 space → Tab
+        parts = Split(s, vbTab)                 ' tách cột theo Tab
+        r = r + 1: c = 0
+        For Each t In parts
+            t = Replace(t, " ", "")             ' xóa mọi space trong token
+            If Len(t) > 0 Then
+                c = c + 1
+                ws.Cells(r, c).Value = t
+            End If
+        Next
+    Loop
+    Close #f
+    ws.UsedRange.Columns.AutoFit
+    Application.ScreenUpdating = True
+End Sub
+
+Private Function GetOrCreate(name$) As Worksheet
+    On Error Resume Next: Set GetOrCreate = Sheets(name)
+    If GetOrCreate Is Nothing Then Set GetOrCreate = Sheets.Add: GetOrCreate.Name = name
+End Function
