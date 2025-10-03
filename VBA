@@ -1,27 +1,89 @@
 Option Explicit
 
-Sub Import_BySpaces_UseCHANNEL_Robust()
-    Dim p$, f%, s$, header$, ws As Worksheet
-    Dim rxDelim As Object, foundHdr As Boolean
-    Dim r&, c&, parts, t, i&, startPos&, endPos&
+'===================== Main =====================
+Public Sub Main_ImportBySpaces_UseCHANNEL()
+    Const SHEET_NAME$ = "Data"
+    Const REMOVE_INNER_SPACES As Boolean = False  ' True: remove all spaces inside token
     
-    ' Chọn file
-    p = Application.GetOpenFilename("Text files,*.txt;*.log,*.*,*.*")
-    If p = "False" Then Exit Sub
+    Dim path$, ws As Worksheet, rxDelim As Object
+    Dim foundHdr As Boolean, header$, nextRow&, msg$
+    
+    path = PickFile()
+    If path = "" Then Exit Sub
+    
+    SetupExcel
+    Set ws = GetOrCreateSheet(SHEET_NAME): ws.Cells.Clear
+    Set rxDelim = BuildDelimiterRegex()
+    
+    ' 1) find CHANNEL block
+    header = ReadChannelBlock(path, foundHdr)
+    
+    ' 2) write headers
+    If foundHdr Then
+        WriteHeaders ws, header
+        nextRow = 2
+    Else
+        msg = "CHANNEL= not found. Import all as data."
+        MsgBox msg, vbExclamation
+        nextRow = 1
+    End If
+    
+    ' 3) parse data
+    ParseDataSection path, ws, nextRow, rxDelim, REMOVE_INNER_SPACES, foundHdr
+    
+    ws.UsedRange.Columns.AutoFit
+    TeardownExcel
+End Sub
 
+'================== File & Excel ==================
+Private Function PickFile() As String
+    Dim p$
+    p = Application.GetOpenFilename("Text files,*.txt;*.log,All files,*.*", , "Choose file")
+    If p = "False" Then p = ""
+    PickFile = p
+End Function
+
+Private Sub SetupExcel()
     Application.ScreenUpdating = False
     Application.EnableEvents = False
     Application.Calculation = xlCalculationManual
-    
-    Set ws = GetOrCreate("Data"): ws.Cells.Clear
-    
-    ' Delimiter: Tab HOẶC cụm ≥3 space
-    Set rxDelim = CreateObject("VBScript.RegExp")
-    rxDelim.Global = True
-    rxDelim.Pattern = "(?:\t| {3,})+"   ' nhận cả tab lẫn ≥3 space
+End Sub
 
-    ' ---------- 1) TÌM VÀ GHÉP BLOCK CHANNEL=[...] ----------
-    f = FreeFile: Open p For Input As #f
+Private Sub TeardownExcel()
+    Application.Calculation = xlCalculationAutomatic
+    Application.EnableEvents = True
+    Application.ScreenUpdating = True
+End Sub
+
+Private Function GetOrCreateSheet(ByVal name$) As Worksheet
+    On Error Resume Next
+    Set GetOrCreateSheet = ThisWorkbook.Worksheets(name)
+    On Error GoTo 0
+    If GetOrCreateSheet Is Nothing Then
+        Set GetOrCreateSheet = ThisWorkbook.Worksheets.Add(After:=Sheets(Sheets.Count))
+        GetOrCreateSheet.Name = name
+    End If
+End Function
+
+'================== Regex ==================
+Private Function BuildDelimiterRegex() As Object
+    ' Tab or >=3 spaces
+    Dim rx As Object
+    Set rx = CreateObject("VBScript.RegExp")
+    rx.Global = True
+    rx.Pattern = "(?:\t| {3,})+"
+    Set BuildDelimiterRegex = rx
+End Function
+
+Private Function NormalizeLineToTabs(ByVal s As String, ByVal rxDelim As Object) As String
+    ' Replace delimiters with Tab
+    NormalizeLineToTabs = rxDelim.Replace(s, vbTab)
+End Function
+
+'================== CHANNEL header ==================
+Private Function ReadChannelBlock(ByVal path As String, ByRef foundHdr As Boolean) As String
+    Dim f%, s$, header$
+    f = FreeFile: Open path For Input As #f
     Do Until EOF(f)
         Line Input #f, s
         If InStr(1, s, "CHANNEL", vbTextCompare) > 0 And InStr(1, s, "=", vbTextCompare) > 0 Then
@@ -30,70 +92,75 @@ Sub Import_BySpaces_UseCHANNEL_Robust()
                 Line Input #f, s
                 header = header & " " & s
             Loop
-            foundHdr = (InStr(1, header, "]") > 0)
             Exit Do
         End If
     Loop
+    Close #f
+    foundHdr = (InStr(1, header, "]") > 0)
+    ReadChannelBlock = header
+End Function
+
+Private Sub WriteHeaders(ByVal ws As Worksheet, ByVal rawHeader As String)
+    Dim clean$, startPos&, endPos&, parts, i&
+    startPos = InStr(rawHeader, "["): endPos = InStrRev(rawHeader, "]")
+    If startPos = 0 Or endPos <= startPos Then Exit Sub
+    clean = Mid$(rawHeader, startPos + 1, endPos - startPos - 1)
+    clean = CleanHeaderString(clean)
+    parts = Split(clean, ",")
+    For i = LBound(parts) To UBound(parts)
+        If Len(Trim$(parts(i))) > 0 Then ws.Cells(1, i + 1).Value = Trim$(parts(i))
+    Next
+End Sub
+
+Private Function CleanHeaderString(ByVal s As String) As String
+    ' Remove extra chars
+    s = Replace$(s, "&", "")
+    s = Replace$(s, "'", "")
+    s = Replace$(s, vbTab, "")
+    s = Replace$(s, vbCr, "")
+    s = Replace$(s, vbLf, "")
+    s = Replace$(s, " ", "")
+    CleanHeaderString = s
+End Function
+
+'================== Data ==================
+Private Sub ParseDataSection( _
+    ByVal path As String, _
+    ByVal ws As Worksheet, _
+    ByVal startRow As Long, _
+    ByVal rxDelim As Object, _
+    ByVal removeInnerSpaces As Boolean, _
+    ByVal skipUntilAfterChannel As Boolean _
+)
+    Dim f%, s$, parts, t, r&, c&, afterHdr As Boolean
     
-    ' Nếu có header → bóc tên cột và ghi hàng 1
-    If foundHdr Then
-        startPos = InStr(header, "["): endPos = InStrRev(header, "]")
-        If startPos > 0 And endPos > startPos Then
-            header = Mid$(header, startPos + 1, endPos - startPos - 1)
-            header = Replace(header, "&", "")
-            header = Replace(header, "'", "")
-            header = Replace(header, vbTab, "")
-            header = Replace(header, vbCr, "")
-            header = Replace(header, vbLf, "")
-            parts = Split(header, ",")
-            For i = LBound(parts) To UBound(parts)
-                If Len(Trim$(parts(i))) > 0 Then ws.Cells(1, i + 1).Value = Trim$(parts(i))
-            Next
-        End If
-    End If
+    r = startRow
+    f = FreeFile: Open path For Input As #f
     
-    ' ---------- 2) ĐỌC DATA ----------
-    ' Nếu KHÔNG tìm thấy CHANNEL, báo và đọc toàn file từ đầu làm data
-    If Not foundHdr Then
-        MsgBox "Không tìm thấy CHANNEL= trong file. Sẽ import toàn bộ như data.", vbExclamation
-        Close #f
-        f = FreeFile: Open p For Input As #f
-    End If
-    
-    r = IIf(foundHdr, 2, 1)
     Do Until EOF(f)
         Line Input #f, s
+        
+        If skipUntilAfterChannel And Not afterHdr Then
+            If InStr(1, s, "]") > 0 Then afterHdr = True
+            GoTo NextLine
+        End If
+        
         If Len(Trim$(s)) = 0 Then GoTo NextLine
-        ' Chuyển delimiter về Tab rồi tách cột
-        s = rxDelim.Replace(s, vbTab)
+        
+        s = NormalizeLineToTabs(s, rxDelim)
         parts = Split(s, vbTab)
         c = 0
         For Each t In parts
-            t = Trim$(t)
+            t = Trim$(CStr(t))
+            If removeInnerSpaces Then t = Replace$(t, " ", "")
             If Len(t) > 0 Then
-                ' Nếu bạn muốn loại mọi khoảng trắng trong token, dùng dòng dưới:
-                ' t = Replace(t, " ", "")
                 c = c + 1
                 ws.Cells(r, c).Value = t
             End If
         Next
         If c > 0 Then r = r + 1
+        
 NextLine:
     Loop
     Close #f
-
-    ws.UsedRange.Columns.AutoFit
-
-CleanExit:
-    Application.Calculation = xlCalculationAutomatic
-    Application.EnableEvents = True
-    Application.ScreenUpdating = True
 End Sub
-
-Private Function GetOrCreate(name$) As Worksheet
-    On Error Resume Next: Set GetOrCreate = ThisWorkbook.Sheets(name)
-    If GetOrCreate Is Nothing Then
-        Set GetOrCreate = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count))
-        GetOrCreate.Name = name
-    End If
-End Function
