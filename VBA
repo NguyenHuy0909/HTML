@@ -1,36 +1,115 @@
 Option Explicit
 
-Sub Import_By_3PlusSpaces_Short()
-    Dim p$, f%, s$, r&, c&, rx As Object, ws As Worksheet, parts, t
-    
+Sub Import_Text_WithChannelHeaders()
+    Dim p$, f%, line$, i&, j&, maxCols&, nColsHdr&, rowsData As Collection
+    Dim rxNum As Object, rxHdr As Object, mc As Object, m As Object, ws As Worksheet
+    Dim all$, hdrRaw$, hdrArr() As String, rowArr() As Variant, arrOut() As Variant
+
     p = Application.GetOpenFilename("Text files,*.txt;*.log,*.*,*.*")
     If p = "False" Then Exit Sub
-    
-    Set ws = GetOrCreate("Data"): ws.Cells.Clear
-    Set rx = CreateObject("VBScript.RegExp")
-    rx.Global = True: rx.Pattern = " {3,}"      ' delimiter = ≥3 khoảng trắng
-    
+
     Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    Application.Calculation = xlCalculationManual
+
+    Set ws = GetOrCreateSheet("Data"): ws.Cells.Clear
+
+    '--- Regex số: int/float/scientific
+    Set rxNum = CreateObject("VBScript.RegExp")
+    With rxNum: .Global = True: .IgnoreCase = True
+        .Pattern = "[+-]?(\d+(\.\d*)?|\.\d+)([Ee][+-]?\d+)?"
+    End With
+
+    '--- Đọc toàn file vào chuỗi (để bắt CHANNEL=[...])
     f = FreeFile: Open p For Input As #f
     Do Until EOF(f)
-        Line Input #f, s
-        s = rx.Replace(s, vbTab)                ' đổi cụm ≥3 space → Tab
-        parts = Split(s, vbTab)                 ' tách cột theo Tab
-        r = r + 1: c = 0
-        For Each t In parts
-            t = Replace(t, " ", "")             ' xóa mọi space trong token
-            If Len(t) > 0 Then
-                c = c + 1
-                ws.Cells(r, c).Value = t
-            End If
-        Next
+        Line Input #f, line
+        all = all & line & vbCrLf
     Loop
     Close #f
-    ws.UsedRange.Columns.AutoFit
+
+    '--- Lấy header từ CHANNEL=[...]
+    Set rxHdr = CreateObject("VBScript.RegExp")
+    With rxHdr: .Global = False: .IgnoreCase = True
+        ' [\s\S] thay cho DOTALL: bắt qua xuống dòng
+        .Pattern = "CHANNEL\s*=\s*\[([\s\S]*?)\]"
+    End With
+
+    If rxHdr.Test(all) Then
+        hdrRaw = rxHdr.Execute(all)(0).SubMatches(0)
+        hdrRaw = Replace(hdrRaw, "&", "")                    ' bỏ nối dòng
+        hdrRaw = Replace(Replace(hdrRaw, vbCrLf, ""), vbLf, "")
+        hdrRaw = Replace(hdrRaw, "'", "")                    ' bỏ dấu nháy
+        hdrRaw = Replace(hdrRaw, " ", "")                    ' gọn dấu cách
+        hdrArr = Split(hdrRaw, ",")
+        nColsHdr = UBound(hdrArr) - LBound(hdrArr) + 1
+        ' Ghi header hàng 1
+        For i = 0 To UBound(hdrArr)
+            If Len(hdrArr(i)) > 0 Then ws.Cells(1, i + 1).Value = hdrArr(i)
+        Next
+    End If
+
+    '--- Quét lại theo dòng để rút số (dòng nào có số → ghi)
+    Set rowsData = New Collection
+    f = FreeFile: Open p For Input As #f
+    Do Until EOF(f)
+        Line Input #f, line
+        Set mc = rxNum.Execute(line)
+        If mc.Count > 0 Then
+            ReDim rowArr(1 To mc.Count)
+            For i = 1 To mc.Count
+                rowArr(i) = ToNumberOrKeepText(NormalizeDecimalForLocale(mc(i - 1).Value))
+            Next
+            rowsData.Add rowArr
+            If mc.Count > maxCols Then maxCols = mc.Count
+        End If
+    Loop
+    Close #f
+
+    If rowsData.Count = 0 Then GoTo CleanExit
+
+    '--- Số cột = max( header , dữ liệu )
+    If nColsHdr > maxCols Then maxCols = nColsHdr
+
+    '--- Đổ dữ liệu (bắt đầu hàng 2 dưới header)
+    ReDim arrOut(1 To rowsData.Count, 1 To maxCols)
+    For i = 1 To rowsData.Count
+        rowArr = rowsData(i)
+        For j = 1 To UBound(rowArr)
+            arrOut(i, j) = rowArr(j)
+        Next
+    Next
+
+    ws.Range(ws.Cells(2, 1), ws.Cells(rowsData.Count + 2 - 1, maxCols)).Value2 = arrOut
+    ws.Range(ws.Cells(1, 1), ws.Cells(rowsData.Count + 1, maxCols)).Columns.AutoFit
+
+CleanExit:
+    Application.Calculation = xlCalculationAutomatic
+    Application.EnableEvents = True
     Application.ScreenUpdating = True
 End Sub
 
-Private Function GetOrCreate(name$) As Worksheet
-    On Error Resume Next: Set GetOrCreate = Sheets(name)
-    If GetOrCreate Is Nothing Then Set GetOrCreate = Sheets.Add: GetOrCreate.Name = name
+'— Đổi dấu thập phân cho đúng locale trước khi ép số
+Private Function NormalizeDecimalForLocale(ByVal s As String) As String
+    Dim decSep$: decSep = Application.International(xlDecimalSeparator)
+    If decSep <> "." Then s = Replace$(s, ".", decSep)
+    NormalizeDecimalForLocale = s
+End Function
+
+'— Trả về số (Double) nếu ép được, ngược lại giữ chuỗi
+Private Function ToNumberOrKeepText(ByVal s As String) As Variant
+    On Error GoTo keep
+    If Len(s) = 0 Then GoTo keep
+    ToNumberOrKeepText = CDbl(s)
+    Exit Function
+keep:
+    ToNumberOrKeepText = s
+End Function
+
+Private Function GetOrCreateSheet(ByVal nm$) As Worksheet
+    On Error Resume Next: Set GetOrCreateSheet = ThisWorkbook.Worksheets(nm)
+    If GetOrCreateSheet Is Nothing Then
+        Set GetOrCreateSheet = ThisWorkbook.Worksheets.Add(After:=Sheets(Sheets.Count))
+        GetOrCreateSheet.Name = nm
+    End If
 End Function
