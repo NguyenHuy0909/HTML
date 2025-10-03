@@ -1,39 +1,42 @@
 Option Explicit
 
-Sub Import_BySpaces_UsingCHANNEL()
-    Dim p$, f%, s$, header$, ws As Worksheet, rxSplit As Object
-    Dim i&, r&, c&, parts, t, startPos&, endPos&, hdrItems() As String
+Sub Import_BySpaces_UseCHANNEL_Robust()
+    Dim p$, f%, s$, header$, ws As Worksheet
+    Dim rxDelim As Object, foundHdr As Boolean
+    Dim r&, c&, parts, t, i&, startPos&, endPos&
     
-    ' 1) Chọn file
+    ' Chọn file
     p = Application.GetOpenFilename("Text files,*.txt;*.log,*.*,*.*")
     If p = "False" Then Exit Sub
-    
+
     Application.ScreenUpdating = False
     Application.EnableEvents = False
     Application.Calculation = xlCalculationManual
     
     Set ws = GetOrCreate("Data"): ws.Cells.Clear
-    Set rxSplit = CreateObject("VBScript.RegExp")
-    rxSplit.Global = True
-    rxSplit.Pattern = " {3,}"            ' delimiter = cụm ≥3 khoảng trắng
     
-    ' 2) Mở file, bỏ toàn bộ dòng TRƯỚC khi gặp CHANNEL=,
-    '    rồi gom đủ block CHANNEL=[ ... ] (kể cả xuống dòng)
+    ' Delimiter: Tab HOẶC cụm ≥3 space
+    Set rxDelim = CreateObject("VBScript.RegExp")
+    rxDelim.Global = True
+    rxDelim.Pattern = "(?:\t| {3,})+"   ' nhận cả tab lẫn ≥3 space
+
+    ' ---------- 1) TÌM VÀ GHÉP BLOCK CHANNEL=[...] ----------
     f = FreeFile: Open p For Input As #f
     Do Until EOF(f)
         Line Input #f, s
-        If InStr(1, s, "CHANNEL=", vbTextCompare) > 0 Then
+        If InStr(1, s, "CHANNEL", vbTextCompare) > 0 And InStr(1, s, "=", vbTextCompare) > 0 Then
             header = s
             Do While InStr(1, header, "]") = 0 And Not EOF(f)
                 Line Input #f, s
                 header = header & " " & s
             Loop
+            foundHdr = (InStr(1, header, "]") > 0)
             Exit Do
         End If
     Loop
     
-    ' 3) Lấy header giữa [ ... ] → tách phần tử → ghi hàng 1
-    If Len(header) > 0 Then
+    ' Nếu có header → bóc tên cột và ghi hàng 1
+    If foundHdr Then
         startPos = InStr(header, "["): endPos = InStrRev(header, "]")
         If startPos > 0 And endPos > startPos Then
             header = Mid$(header, startPos + 1, endPos - startPos - 1)
@@ -42,44 +45,55 @@ Sub Import_BySpaces_UsingCHANNEL()
             header = Replace(header, vbTab, "")
             header = Replace(header, vbCr, "")
             header = Replace(header, vbLf, "")
-            hdrItems = Split(header, ",")
-            For i = LBound(hdrItems) To UBound(hdrItems)
-                If Len(Trim$(hdrItems(i))) > 0 Then ws.Cells(1, i + 1).Value = Trim$(hdrItems(i))
+            parts = Split(header, ",")
+            For i = LBound(parts) To UBound(parts)
+                If Len(Trim$(parts(i))) > 0 Then ws.Cells(1, i + 1).Value = Trim$(parts(i))
             Next
         End If
     End If
     
-    ' 4) Phần còn lại của file = DATA → tách theo ≥3 space,
-    '    và xóa mọi space bên trong từng token
-    r = 2
+    ' ---------- 2) ĐỌC DATA ----------
+    ' Nếu KHÔNG tìm thấy CHANNEL, báo và đọc toàn file từ đầu làm data
+    If Not foundHdr Then
+        MsgBox "Không tìm thấy CHANNEL= trong file. Sẽ import toàn bộ như data.", vbExclamation
+        Close #f
+        f = FreeFile: Open p For Input As #f
+    End If
+    
+    r = IIf(foundHdr, 2, 1)
     Do Until EOF(f)
         Line Input #f, s
-        If Len(Trim$(s)) > 0 Then
-            s = Replace(s, vbTab, "   ")   ' nếu có tab, coi ~ delimiter
-            s = rxSplit.Replace(s, vbTab)
-            parts = Split(s, vbTab)
-            c = 0
-            For Each t In parts
-                t = Replace(t, " ", "")
-                If Len(t) > 0 Then
-                    c = c + 1
-                    ws.Cells(r, c).Value = t
-                End If
-            Next
-            If c > 0 Then r = r + 1
-        End If
+        If Len(Trim$(s)) = 0 Then GoTo NextLine
+        ' Chuyển delimiter về Tab rồi tách cột
+        s = rxDelim.Replace(s, vbTab)
+        parts = Split(s, vbTab)
+        c = 0
+        For Each t In parts
+            t = Trim$(t)
+            If Len(t) > 0 Then
+                ' Nếu bạn muốn loại mọi khoảng trắng trong token, dùng dòng dưới:
+                ' t = Replace(t, " ", "")
+                c = c + 1
+                ws.Cells(r, c).Value = t
+            End If
+        Next
+        If c > 0 Then r = r + 1
+NextLine:
     Loop
     Close #f
-    
+
     ws.UsedRange.Columns.AutoFit
-    
-CleanUp:
+
+CleanExit:
     Application.Calculation = xlCalculationAutomatic
     Application.EnableEvents = True
     Application.ScreenUpdating = True
 End Sub
 
 Private Function GetOrCreate(name$) As Worksheet
-    On Error Resume Next: Set GetOrCreate = Sheets(name)
-    If GetOrCreate Is Nothing Then Set GetOrCreate = Sheets.Add: GetOrCreate.Name = name
+    On Error Resume Next: Set GetOrCreate = ThisWorkbook.Sheets(name)
+    If GetOrCreate Is Nothing Then
+        Set GetOrCreate = ThisWorkbook.Sheets.Add(After:=Sheets(Sheets.Count))
+        GetOrCreate.Name = name
+    End If
 End Function
