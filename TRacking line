@@ -1,0 +1,40 @@
+Sub ReadAndJoinLine19_20()
+    Dim filePath As String
+    Dim fso As Object, ts As Object
+    Dim line As String
+    Dim lineCount As Long
+    Dim line19 As String, line20 As String
+    Dim ws As Worksheet
+    
+    ' Chọn file txt
+    filePath = Application.GetOpenFilename("Text Files (*.txt),*.txt", , "Chọn file txt cần đọc")
+    If filePath = "False" Then Exit Sub
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set ts = fso.OpenTextFile(filePath, 1)
+    Set ws = ActiveSheet
+    
+    lineCount = 0
+    
+    ' Đọc file từng dòng
+    Do Until ts.AtEndOfStream
+        line = ts.ReadLine
+        lineCount = lineCount + 1
+        
+        ' Ghi nhớ nội dung dòng 19 và 20
+        If lineCount = 19 Then line19 = line
+        If lineCount = 20 Then
+            line20 = line
+            
+            ' ✅ Ghép 2 dòng lại với nhau
+            Dim joined As String
+            joined = line19 & line20
+            
+            ' In ra Excel hoặc cửa sổ
+            ws.Range("A1").Value = joined
+            MsgBox "Dòng 19 + 20 = " & vbCrLf & joined
+        End If
+    Loop
+    
+    ts.Close
+End Sub
