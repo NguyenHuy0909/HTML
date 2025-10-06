@@ -14,8 +14,15 @@ Sub ImportTxtSplit16()
     Set ws = ActiveSheet
     
     i = 1
-    Do Until ts.AtEndOfStream
-        line = ts.ReadLine
+    Dim lineCount As Long
+lineCount = 0
+
+Do Until ts.AtEndOfStream
+    line = ts.ReadLine
+    lineCount = lineCount + 1
+    
+    ' 🔸 Chỉ bắt đầu xử lý từ dòng thứ 24 trong file txt
+    If lineCount >= 24 Then
         col = 1
         Do While Len(line) > 0
             ws.Cells(i, col).Value = Left(line, 16)
@@ -23,7 +30,8 @@ Sub ImportTxtSplit16()
             col = col + 1
         Loop
         i = i + 1
-    Loop
+    End If
+Loop
     
     ts.Close
     MsgBox "Đã import xong!", vbInformation
