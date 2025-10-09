@@ -1,20 +1,23 @@
-Function FindColumnsByText(ws As Worksheet, keyword As String) As Variant
-    Dim i As Long, lastCol As Long
+Function FindColumnsByKeywords(ws As Worksheet, keywords As Variant) As Variant
+    Dim i As Long, k As Long, lastCol As Long
     Dim tmp() As Long, count As Long
     
     lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
     
     For i = 1 To lastCol
-        If InStr(1, ws.Cells(1, i).Value, keyword, vbTextCompare) > 0 Then
-            count = count + 1
-            ReDim Preserve tmp(1 To count)
-            tmp(count) = i
-        End If
+        For k = LBound(keywords) To UBound(keywords)
+            If InStr(1, ws.Cells(1, i).Value, keywords(k), vbTextCompare) > 0 Then
+                count = count + 1
+                ReDim Preserve tmp(1 To count)
+                tmp(count) = i
+                Exit For   ' dừng vòng lặp keyword nếu ô này đã khớp
+            End If
+        Next k
     Next i
     
     If count > 0 Then
-        FindColumnsByText = tmp
+        FindColumnsByKeywords = tmp
     Else
-        FindColumnsByText = Array()
+        FindColumnsByKeywords = Array()
     End If
 End Function
