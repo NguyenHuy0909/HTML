@@ -1,23 +1,21 @@
-Function FindColumnsByKeywords(ws As Worksheet, keywords As Variant) As Variant
-    Dim i As Long, k As Long, lastCol As Long
-    Dim tmp() As Long, count As Long
-    
-    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
-    
-    For i = 1 To lastCol
-        For k = LBound(keywords) To UBound(keywords)
-            If InStr(1, ws.Cells(1, i).Value, keywords(k), vbTextCompare) > 0 Then
-                count = count + 1
-                ReDim Preserve tmp(1 To count)
-                tmp(count) = i
-                Exit For   ' dừng vòng lặp keyword nếu ô này đã khớp
-            End If
-        Next k
-    Next i
-    
-    If count > 0 Then
-        FindColumnsByKeywords = tmp
+Sub SafeGetRangeA1ToA10()
+    Dim arrRaw As Variant
+    Dim arrFinal As Variant
+    Dim i As Integer
+
+    ' Lấy dữ liệu từ A1:A10
+    arrRaw = Range("A1:A10").Value
+
+    ' Kiểm tra xem có phải mảng 2 chiều không
+    If IsArray(arrRaw) Then
+        ' Chuyển thành mảng 1 chiều
+        arrFinal = Application.WorksheetFunction.Transpose(arrRaw)
+
+        ' In ra từng phần tử
+        For i = LBound(arrFinal) To UBound(arrFinal)
+            Debug.Print arrFinal(i)
+        Next i
     Else
-        FindColumnsByKeywords = Array()
+        MsgBox "Không có dữ liệu hoặc chỉ có một ô có giá trị."
     End If
-End Function
+End Sub
