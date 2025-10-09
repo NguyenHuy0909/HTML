@@ -1,21 +1,20 @@
-Sub SafeGetRangeA1ToA10()
-    Dim arrRaw As Variant
-    Dim arrFinal As Variant
+Sub GetValuesFromA1ToA10_Safe()
+    Dim arr() As Variant
     Dim i As Integer
+    Dim count As Integer
 
-    ' Lấy dữ liệu từ A1:A10
-    arrRaw = Range("A1:A10").Value
+    count = 0
+    ' Duyệt từ A1 đến A10
+    For i = 1 To 10
+        If Not IsEmpty(Range("A" & i).Value) Then
+            count = count + 1
+            ReDim Preserve arr(1 To count)
+            arr(count) = Range("A" & i).Value
+        End If
+    Next i
 
-    ' Kiểm tra xem có phải mảng 2 chiều không
-    If IsArray(arrRaw) Then
-        ' Chuyển thành mảng 1 chiều
-        arrFinal = Application.WorksheetFunction.Transpose(arrRaw)
-
-        ' In ra từng phần tử
-        For i = LBound(arrFinal) To UBound(arrFinal)
-            Debug.Print arrFinal(i)
-        Next i
-    Else
-        MsgBox "Không có dữ liệu hoặc chỉ có một ô có giá trị."
-    End If
+    ' In ra kết quả
+    For i = 1 To count
+        Debug.Print arr(i)
+    Next i
 End Sub
