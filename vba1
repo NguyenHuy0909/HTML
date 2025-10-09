@@ -1,79 +1,20 @@
-Public folderPath As String
-Sub Browser()
-    Dim fso As Object, folder As Object, file As Object
-    Dim ws As Worksheet
-    Dim row As Long
+Function FindColumnsByText(ws As Worksheet, keyword As String) As Variant
+    Dim i As Long, lastCol As Long
+    Dim tmp() As Long, count As Long
     
-    ' --- Ask user to choose folder ---
-    With Application.FileDialog(msoFileDialogFolderPicker)
-        .Title = "Select Folder"
-        If .Show <> -1 Then Exit Sub
-        folderPath = .SelectedItems(1)
-    End With
+    lastCol = ws.Cells(1, ws.Columns.Count).End(xlToLeft).Column
     
-    row = 1
-    ' --- Initialize ---
-    Set ws = ActiveSheet
-    ws.Cells(row, 2).Value = "" & folderPath
-End Sub
-Sub ListEXFiles()
-    Dim fso As Object, folder As Object, file As Object
-    Dim ws As Worksheet
-    
-    row = 1
-    col = 1
-    ' --- Initialize ---
-    Set ws = ActiveSheet
-    ws.Range(ws.Cells(row + 9, 1), ws.Cells(ws.Rows.Count, 1)).ClearContents
-    ws.Range(ws.Cells(row + 9, 2), ws.Cells(ws.Rows.Count, 1)).ClearContents
-    ws.Range(ws.Cells(row + 9, 3), ws.Cells(ws.Rows.Count, 1)).ClearContents
-    row = row + 9
-    ' --- Create FileSystemObject ---
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    folderPath = ws.Range("B1")
-    Set folder = fso.GetFolder(folderPath)
-    
-    ' --- Loop through all files in the folder ---
-    For Each file In folder.Files
-        If LCase(fso.GetExtensionName(file.Name)) = "ex" Then
-            ws.Cells(row, col).Value = row - 9
-            ws.Cells(row, col + 1).Value = file.Name           ' file name only
-            'ws.Cells(row, 2).Value = file.Path                ' full path
-            ws.Cells(row, col + 2).Value = Format(file.DateLastModified, "yyyy-mm-dd hh:nn:ss")
-            row = row + 1
+    For i = 1 To lastCol
+        If InStr(1, ws.Cells(1, i).Value, keyword, vbTextCompare) > 0 Then
+            count = count + 1
+            ReDim Preserve tmp(1 To count)
+            tmp(count) = i
         End If
-    Next file
-End Sub
-Sub FindCaseSet()
-    Dim fso As Object, folder As Object, file As Object, mainFolder As Object, subFolder As Object
-    Dim ws As Worksheet
-    Dim case_set As String
-    ' --- Initialize ---
-    Set ws = ActiveSheet
-    ws.Range(ws.Cells(10, 6), ws.Cells(ws.Rows.Count, 6)).ClearContents
-    ws.Range(ws.Cells(10, 7), ws.Cells(ws.Rows.Count, 7)).ClearContents
-    ' --- Create FileSystemObject ---
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    folderPath = ws.Range("B1")
-    Set folder = fso.GetFolder(folderPath)
+    Next i
     
-    ' --- Create FileSystemObject and get main folder ---
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    folderPath = ws.Range("B1")
-    Set mainFolder = fso.GetFolder(folderPath)
-    row = 10
-    row1 = row + Range("G8") - 1
-    col1 = 2
-    ' --- Loop through all subfolders ---
-    case_set = Replace(ws.Cells(row1, col1).Value, "ex", "")
-    'MsgBox case_set
-    For Each subFolder In mainFolder.SubFolders
-        If InStr(1, subFolder.Name, case_set, vbTextCompare) > 0 Then
-            ws.Cells(row, 6).Value = row - 9
-            ws.Cells(row, 7).Value = subFolder.Name
-            ws.Cells(row, 13).Value = subFolder.Path & "\result"
-            row = row + 1
-        End If
-    Next subFolder
-End Sub
-
+    If count > 0 Then
+        FindColumnsByText = tmp
+    Else
+        FindColumnsByText = Array()
+    End If
+End Function
