@@ -1,20 +1,20 @@
-Sub GetValuesFromA1ToA10_Safe()
+Function GetValuesFromRow(rowIndex As Long, colStart As Long, colEnd As Long) As Variant
     Dim arr() As Variant
-    Dim i As Integer
-    Dim count As Integer
+    Dim i As Long
+    Dim count As Long
 
     count = 0
-    ' Duyệt từ A1 đến A10
-    For i = 1 To 10
-        If Not IsEmpty(Range("A" & i).Value) Then
+    For i = colStart To colEnd
+        If Not IsEmpty(Cells(rowIndex, i).Value) Then
             count = count + 1
             ReDim Preserve arr(1 To count)
-            arr(count) = Range("A" & i).Value
+            arr(count) = Cells(rowIndex, i).Value
         End If
     Next i
 
-    ' In ra kết quả
-    For i = 1 To count
-        Debug.Print arr(i)
-    Next i
-End Sub
+    If count > 0 Then
+        GetValuesFromRow = arr
+    Else
+        GetValuesFromRow = Array() ' Trả về mảng rỗng nếu không có giá trị
+    End If
+End Function
