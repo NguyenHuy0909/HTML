@@ -1,38 +1,269 @@
-Sub ImportTxtSplit16()
-    Dim filePath As String
-    Dim fso As Object, ts As Object
-    Dim line As String
-    Dim i As Long, col As Long
-    Dim ws As Worksheet
-    
-    ' chọn file txt
-    filePath = Application.GetOpenFilename("Text Files (*.txt),*.txt", , "Chọn file txt cần import")
-    If filePath = "False" Then Exit Sub
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    Set ts = fso.OpenTextFile(filePath, 1)
-    Set ws = ActiveSheet
-    
-    i = 1
-    Dim lineCount As Long
-lineCount = 0
+Option Explicit
 
-Do Until ts.AtEndOfStream
-    line = ts.ReadLine
-    lineCount = lineCount + 1
+'===========================
+' Next power of 2
+'===========================
+Private Function NextPow2(ByVal n As Long) As Long
+    Dim p As Long: p = 1
+    Do While p < n
+        p = p * 2
+    Loop
+    NextPow2 = p
+End Function
+
+'===================================
+' In-place radix-2 FFT (Cooley–Tukey)
+' re(), im(): 0..N-1
+' inverse=False => FFT, True => IFFT
+'===================================
+Private Sub FFT_InPlace(re() As Double, im() As Double, ByVal inverse As Boolean)
+    Dim n As Long, i As Long, j As Long, k As Long
+    Dim le As Long, le2 As Long
+    Dim ur As Double, ui As Double, sr As Double, si As Double, tr As Double, ti As Double
+    Dim ang As Double, sgn As Double
     
-    ' 🔸 Chỉ bắt đầu xử lý từ dòng thứ 24 trong file txt
-    If lineCount >= 24 Then
-        col = 1
-        Do While Len(line) > 0
-            ws.Cells(i, col).Value = Left(line, 16)
-            line = Mid(line, 17)
-            col = col + 1
+    n = UBound(re) - LBound(re) + 1
+    If n <= 1 Then Exit Sub
+    sgn = IIf(inverse, 1#, -1#)
+    
+    ' bit-reversal
+    j = 0
+    For i = 0 To n - 2
+        If i < j Then
+            tr = re(j): re(j) = re(i): re(i) = tr
+            ti = im(j): im(j) = im(i): im(i) = ti
+        End If
+        k = n \ 2
+        Do While k <= j
+            j = j - k
+            k = k \ 2
         Loop
-        i = i + 1
-    End If
-Loop
+        j = j + k
+    Next i
     
-    ts.Close
-    MsgBox "Đã import xong!", vbInformation
+    ' Danielson-Lanczos
+    le = 2
+    Do While le <= n
+        ang = 2# * WorksheetFunction.Pi() / le
+        sr = Cos(ang)
+        si = sgn * Sin(ang)
+        ur = 1#: ui = 0#
+        le2 = le \ 2
+        Dim j2 As Long, i2 As Long
+        For j2 = 0 To le2 - 1
+            i2 = j2
+            Do While i2 < n
+                k = i2 + le2
+                tr = ur * re(k) - ui * im(k)
+                ti = ur * im(k) + ui * re(k)
+                re(k) = re(i2) - tr
+                im(k) = im(i2) - ti
+                re(i2) = re(i2) + tr
+                im(i2) = im(i2) + ti
+                i2 = i2 + le
+            Loop
+            tr = ur * sr - ui * si
+            ui = ur * si + ui * sr
+            ur = tr
+        Next j2
+        le = le * 2
+    Loop
+    
+    If inverse Then
+        For i = 0 To n - 1
+            re(i) = re(i) / n
+            im(i) = im(i) / n
+        Next i
+    End If
+End Sub
+
+'===========================
+' Linear interpolation y(x)
+' x must be ascending
+'===========================
+Private Function LinInterp(ByRef x() As Double, ByRef y() As Double, ByVal xq As Double) As Double
+    Dim n As Long: n = UBound(x)
+    If xq <= x(0) Then
+        LinInterp = y(0): Exit Function
+    ElseIf xq >= x(n) Then
+        LinInterp = y(n): Exit Function
+    End If
+    Dim lo As Long, hi As Long, mid As Long
+    lo = 0: hi = n
+    Do While hi - lo > 1
+        mid = (lo + hi) \ 2
+        If x(mid) > xq Then
+            hi = mid
+        Else
+            lo = mid
+        End If
+    Loop
+    Dim t As Double
+    t = (xq - x(lo)) / (x(hi) - x(lo))
+    LinInterp = y(lo) * (1# - t) + y(hi) * t
+End Function
+
+'=========================================================
+' EXCITE-style spectrum:
+' - Window: Hann
+' - RMS window correction (Cw = sqrt(3/8))
+' - Single-sided amplitude, *2 except DC/Nyquist
+' - Convert to RMS per bin (/sqrt(2))
+' - Interpolate to uniform grid: f = 0:Δf:MaxFreq
+' - Level(dB) = 20*log10( a_rms / a0 )
+' Inputs:
+'   A2..A? : acceleration (m/s^2)
+'   B1     : Fs (Hz)
+'   B2     : a0 (default 1e-6 m/s^2)
+'   B3     : MaxFreq (default 1500 Hz)
+'   B4     : Increment Δf (default 1 Hz)
+' Outputs:
+'   D:E    : f(Hz), Level(dB re a0)
+'=========================================================
+Public Sub Excite_Style_Spectrum()
+    Dim ws As Worksheet: Set ws = ActiveSheet
+    Const FLOOR_DB As Double = -300#
+    
+    ' Read params
+    Dim Fs As Double, a0 As Double, fmax As Double, df As Double
+    If IsEmpty(ws.Range("B1")) Then
+        MsgBox "Nhập Fs (Hz) ở ô B1.", vbExclamation: Exit Sub
+    End If
+    Fs = ws.Range("B1").Value
+    If Fs <= 0 Then MsgBox "Fs phải > 0.", vbExclamation: Exit Sub
+    
+    a0 = IIf(IsEmpty(ws.Range("B2")), 1E-6, ws.Range("B2").Value)
+    If a0 <= 0 Then a0 = 1E-6
+    
+    fmax = IIf(IsEmpty(ws.Range("B3")), 1500#, ws.Range("B3").Value)
+    If fmax <= 0 Then fmax = 1500#
+    
+    df = IIf(IsEmpty(ws.Range("B4")), 1#, ws.Range("B4").Value)
+    If df <= 0 Then df = 1#
+    
+    ' Read data
+    Dim rStart As Long: rStart = 2
+    Dim rEnd As Long: rEnd = ws.Cells(ws.Rows.Count, "A").End(xlUp).Row
+    If rEnd < rStart Then
+        MsgBox "Không có dữ liệu ở cột A (A2..).", vbExclamation: Exit Sub
+    End If
+    Dim N As Long: N = rEnd - rStart + 1
+    If N < 2 Then MsgBox "Cần ≥ 2 mẫu.", vbExclamation: Exit Sub
+    
+    ' Detrend + Hann window
+    Dim a() As Double, w() As Double, aw() As Double
+    ReDim a(0 To N - 1)
+    ReDim w(0 To N - 1)
+    ReDim aw(0 To N - 1)
+    
+    Dim i As Long
+    Dim meanA As Double: meanA = 0#
+    For i = 0 To N - 1
+        a(i) = ws.Cells(rStart + i, "A").Value
+        meanA = meanA + a(i)
+    Next i
+    meanA = meanA / N
+    For i = 0 To N - 1
+        a(i) = a(i) - meanA
+    Next i
+    
+    Dim Nminus1 As Double: Nminus1 = CDbl(N - 1)
+    For i = 0 To N - 1
+        If N = 1 Then
+            w(i) = 1#
+        Else
+            w(i) = 0.5# * (1# - Cos(2# * WorksheetFunction.Pi() * i / Nminus1))
+        End If
+        aw(i) = a(i) * w(i)
+    Next i
+    
+    ' Zero-pad to decent resolution (<= df)
+    ' Choose Nfft so that Fs/Nfft <= df (then we'll still interpolate to exact grid)
+    Dim Nfft As Long
+    Nfft = NextPow2(Application.WorksheetFunction.Ceiling_Precise(Fs / df, 1))
+    If Nfft < N Then Nfft = NextPow2(N)
+    
+    Dim re() As Double, im() As Double
+    ReDim re(0 To Nfft - 1)
+    ReDim im(0 To Nfft - 1)
+    For i = 0 To N - 1
+        re(i) = aw(i): im(i) = 0#
+    Next i
+    For i = N To Nfft - 1
+        re(i) = 0#: im(i) = 0#
+    Next i
+    
+    ' FFT
+    Call FFT_InPlace(re, im, False)
+    
+    ' One-sided amplitude with window RMS correction
+    Dim Cw As Double: Cw = Sqr(3# / 8#) ' Hann RMS gain
+    Dim k As Long, kmax As Long
+    kmax = Nfft \ 2
+    Dim mag() As Double: ReDim mag(0 To kmax)
+    For k = 0 To kmax
+        mag(k) = Sqr(re(k) * re(k) + im(k) * im(k))
+    Next k
+    For k = 0 To kmax
+        mag(k) = mag(k) / (N * Cw)
+    Next k
+    If (Nfft Mod 2) = 0 Then
+        For k = 1 To kmax - 1
+            mag(k) = 2# * mag(k)
+        Next k
+    Else
+        For k = 1 To kmax
+            mag(k) = 2# * mag(k)
+        Next k
+    End If
+    
+    ' Convert to RMS per bin
+    Dim aRMS() As Double: ReDim aRMS(0 To kmax)
+    For k = 0 To kmax
+        aRMS(k) = mag(k) / Sqr(2#)
+    Next k
+    
+    ' Frequency axis of FFT
+    Dim ffft() As Double: ReDim ffft(0 To kmax)
+    For k = 0 To kmax
+        ffft(k) = (CDbl(k) * Fs) / Nfft
+    Next k
+    
+    ' Build uniform target grid: 0 : df : fmax, limited by Nyquist
+    Dim fny As Double: fny = Fs / 2#
+    Dim fstop As Double: fstop = fmax
+    If fstop > fny Then fstop = fny
+    If fstop <= 0 Then
+        MsgBox "fstop <= 0 (kiểm tra Fs / MaxFreq).", vbExclamation: Exit Sub
+    End If
+    
+    Dim nGrid As Long: nGrid = Fix(fstop / df) + 1
+    Dim fgrid() As Double: ReDim fgrid(0 To nGrid - 1)
+    Dim ygrid() As Double: ReDim ygrid(0 To nGrid - 1)
+    Dim La() As Double:    ReDim La(0 To nGrid - 1)
+    
+    Dim idx As Long
+    For idx = 0 To nGrid - 1
+        fgrid(idx) = idx * df
+        ' nội suy tuyến tính aRMS(f) -> ygrid
+        ygrid(idx) = LinInterp(ffft, aRMS, fgrid(idx))
+        If ygrid(idx) > 0# Then
+            La(idx) = 20# * Log(ygrid(idx) / a0) / Log(10#)
+            If La(idx) < FLOOR_DB Then La(idx) = FLOOR_DB
+        Else
+            La(idx) = FLOOR_DB
+        End If
+    Next idx
+    
+    ' Xuất kết quả
+    ws.Range("D:E").ClearContents
+    ws.Range("D1").Value = "f (Hz)"
+    ws.Range("E1").Value = "Amplitude Level (dB re a0)"
+    For idx = 0 To nGrid - 1
+        ws.Cells(2 + idx, "D").Value = fgrid(idx)
+        ws.Cells(2 + idx, "E").Value = La(idx)
+    Next idx
+    
+    MsgBox "Xong. Lưới tần số đồng đều " & df & " Hz tới " & fstop & " Hz," & vbCrLf & _
+           "Hann window + RMS correction, 20*log10(·/a0) với a0=" & a0, vbInformation
 End Sub
