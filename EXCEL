@@ -1,19 +1,37 @@
-Sub ThemSeriesMoi()
-    Dim cht As ChartObject
-    Dim newSeries As Series
-
-    ' Giả sử đang dùng biểu đồ đầu tiên trong sheet
-    Set cht = ActiveSheet.ChartObjects(1)
-
-    ' Thêm series mới vào chart
-    Set newSeries = cht.Chart.SeriesCollection.NewSeries
-
-    ' Gán dữ liệu cho series mới (ví dụ: cột A là x, cột B là y)
-    With newSeries
-        .XValues = ActiveSheet.Range("A2:A10")
-        .Values = ActiveSheet.Range("B2:B10")
-        .Name = "Series mới"
-    End With
-
-    MsgBox "Đã thêm series mới vào biểu đồ!"
+Sub LinkTableCellsToSlides()
+    Dim sld As Slide
+    Dim shp As Shape
+    Dim tbl As Table
+    Dim r As Integer, c As Integer
+    Dim txt As String, num As Integer
+    
+    '=== chọn slide chứa bảng trước rồi chạy macro ===
+    Set sld = ActiveWindow.View.Slide
+    
+    For Each shp In sld.Shapes
+        If shp.HasTable Then
+            Set tbl = shp.Table
+            For r = 1 To tbl.Rows.Count
+                For c = 1 To tbl.Columns.Count
+                    txt = Trim(tbl.Cell(r, c).Shape.TextFrame.TextRange.Text)
+                    
+                    ' kiểm tra nếu text có dạng "P.32" thì lấy số 32
+                    If InStr(1, txt, "P.") > 0 Then
+                        num = Val(Replace(txt, "P.", ""))
+                        
+                        ' nếu slide đó tồn tại, tạo hyperlink
+                        If num <= ActivePresentation.Slides.Count Then
+                            With tbl.Cell(r, c).Shape.ActionSettings(ppMouseClick)
+                                .Action = ppActionHyperlink
+                                .Hyperlink.Address = ""
+                                .Hyperlink.SubAddress = "Slide" & num
+                            End With
+                        End If
+                    End If
+                Next c
+            Next r
+        End If
+    Next shp
+    
+    MsgBox "✅ Đã tạo liên kết tới các slide tương ứng!"
 End Sub
