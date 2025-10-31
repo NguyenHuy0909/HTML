@@ -1,30 +1,41 @@
-Sub LinkTableCellsToSlides()
+Sub LinkTableCellsToSlides_ByTitle()
     Dim sld As Slide
     Dim shp As Shape
     Dim tbl As Table
     Dim r As Integer, c As Integer
     Dim txt As String, num As Integer
-    
-    '=== chọn slide chứa bảng trước rồi chạy macro ===
+    Dim slideName As String
+
+    '=== chọn slide chứa bảng rồi chạy ===
     Set sld = ActiveWindow.View.Slide
-    
+
     For Each shp In sld.Shapes
         If shp.HasTable Then
             Set tbl = shp.Table
+
             For r = 1 To tbl.Rows.Count
                 For c = 1 To tbl.Columns.Count
                     txt = Trim(tbl.Cell(r, c).Shape.TextFrame.TextRange.Text)
-                    
-                    ' kiểm tra nếu text có dạng "P.32" thì lấy số 32
+
+                    ' tìm dạng "P.xx"
                     If InStr(1, txt, "P.") > 0 Then
                         num = Val(Replace(txt, "P.", ""))
-                        
-                        ' nếu slide đó tồn tại, tạo hyperlink
+
+                        ' kiểm tra slide tồn tại
                         If num <= ActivePresentation.Slides.Count Then
-                            With tbl.Cell(r, c).Shape.ActionSettings(ppMouseClick)
+                            ' Lấy tiêu đề của slide đích
+                            On Error Resume Next
+                            slideName = ActivePresentation.Slides(num).Shapes.Title.TextFrame.TextRange.Text
+                            On Error GoTo 0
+
+                            ' Nếu không có tiêu đề, dùng tên "Slide x"
+                            If slideName = "" Then slideName = "Slide " & num
+
+                            ' Gán hyperlink tới đúng slide title
+                            With tbl.Cell(r, c).Shape.TextFrame.TextRange.ActionSettings(ppMouseClick)
                                 .Action = ppActionHyperlink
-                                .Hyperlink.Address = ""
-                                .Hyperlink.SubAddress = "Slide" & num
+                                .Hyperlink.Address = vbNullString
+                                .Hyperlink.SubAddress = slideName
                             End With
                         End If
                     End If
@@ -32,6 +43,6 @@ Sub LinkTableCellsToSlides()
             Next r
         End If
     Next shp
-    
-    MsgBox "✅ Đã tạo liên kết tới các slide tương ứng!"
+
+    MsgBox "✅ Đã tạo liên kết 'Place in This Document' tới đúng slide title!"
 End Sub
