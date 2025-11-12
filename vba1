@@ -1,20 +1,33 @@
-Function GetValuesFromRow(rowIndex As Long, colStart As Long, colEnd As Long) As Variant
-    Dim arr() As Variant
-    Dim i As Long
-    Dim count As Long
+Select Case erow
+    '================= Hàng 4 =================
+    Case 4
+        Select Case pos
+            Case 1: a1.Top = 50
+            Case 2: a1.Top = 390
+            Case 3: a1.Top = 730
+        End Select
 
-    count = 0
-    For i = colStart To colEnd
-        If Not IsEmpty(Cells(rowIndex, i).Value) Then
-            count = count + 1
-            ReDim Preserve arr(1 To count)
-            arr(count) = Cells(rowIndex, i).Value
-        End If
-    Next i
+    '================= Hàng 5 =================
+    Case 5
+        Select Case pos
+            Case 1: a2.Top = 100
+            Case 2: a2.Top = 440
+            Case 3: a2.Top = 780
+        End Select
 
-    If count > 0 Then
-        GetValuesFromRow = arr
-    Else
-        GetValuesFromRow = Array() ' Trả về mảng rỗng nếu không có giá trị
-    End If
-End Function
+    '================= Hàng 6 =================
+    Case 6
+        Select Case pos
+            Case 1: a3.Top = 150
+            Case 2: a3.Top = 490
+            Case 3: a3.Top = 830
+        End Select
+
+    '================= Hàng 7 =================
+    Case 7
+        Select Case pos
+            Case 1: a4.Top = 200
+            Case 2: a4.Top = 540
+            Case 3: a4.Top = 880
+        End Select
+End Select
