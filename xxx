@@ -1,43 +1,46 @@
-Option Explicit
+Public Sub SetLineType(i As Long, dashStyle As Long)
 
-Public gUF As Object
-Public gLineTarget As Long
+    LineDash(i) = dashStyle
 
-Public Sub ShowLineTypeMenu()
-    Dim pop As CommandBar
+    ' cập nhật caption
+    Me.Controls("lblLine" & i).Caption = DashStyleToText(dashStyle)
+
+    ' lưu vào Workbook
+    SaveLineType i, dashStyle
+
+End Sub
+Private Function DashStyleToText(d As Long) As String
+    Select Case d
+        Case msoLineSolid: DashStyleToText = "Solid"
+        Case msoLineDash: DashStyleToText = "Dash"
+        Case msoLineRoundDot: DashStyleToText = "Dot"
+        Case msoLineDashDot: DashStyleToText = "Dash Dot"
+        Case msoLineDashDotDot: DashStyleToText = "Dash Dot Dot"
+        Case msoLineLongDash: DashStyleToText = "Long Dash"
+        Case msoLineLongDashDot: DashStyleToText = "Long Dash Dot"
+        Case msoLineLongDashDotDot: DashStyleToText = "Long Dash Dot Dot"
+        Case Else: DashStyleToText = "Custom"
+    End Select
+End Function
+Public Sub SaveLineType(i As Long, dashStyle As Long)
+    Dim nm As String
+    nm = "LineType_" & i
 
     On Error Resume Next
-    Application.CommandBars("LineTypePopup").Delete
+    ThisWorkbook.Names(nm).Delete
     On Error GoTo 0
 
-    Set pop = Application.CommandBars.Add( _
-        Name:="LineTypePopup", _
-        Position:=msoBarPopup, _
-        Temporary:=True)
-
-    AddLineItem pop, "Solid", msoLineSolid
-    AddLineItem pop, "Dash", msoLineDash
-    AddLineItem pop, "Dot", msoLineRoundDot
-    AddLineItem pop, "Dash Dot", msoLineDashDot
-    AddLineItem pop, "Dash Dot Dot", msoLineDashDotDot
-    AddLineItem pop, "Long Dash", msoLineLongDash
-    AddLineItem pop, "Long Dash Dot", msoLineLongDashDot
-    AddLineItem pop, "Long Dash Dot Dot", msoLineLongDashDotDot
-
-    pop.ShowPopup
+    ThisWorkbook.Names.Add Name:=nm, RefersTo:=dashStyle
 End Sub
+Dim i As Long, v As Variant
 
-Private Sub AddLineItem(pop As CommandBar, caption As String, dashStyle As Long)
-    Dim btn As CommandBarButton
-    Set btn = pop.Controls.Add(Type:=msoControlButton)
-    btn.Caption = caption
-    btn.Tag = CStr(dashStyle)
-    btn.OnAction = "PickLineType_Apply"
-End Sub
+For i = 1 To 4
+    On Error Resume Next
+    v = Evaluate(ThisWorkbook.Names("LineType_" & i).RefersTo)
+    On Error GoTo 0
 
-Public Sub PickLineType_Apply()
-    Dim dashStyle As Long
-    dashStyle = CLng(Application.CommandBars.ActionControl.Tag)
-
-    gUF.SetLineType gLineTarget, dashStyle
-End Sub
+    If v <> 0 Then
+        LineDash(i) = v
+        Me.Controls("lblLine" & i).Caption = DashStyleToText(v)
+    End If
+Next i
