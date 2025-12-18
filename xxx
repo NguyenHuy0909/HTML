@@ -1,0 +1,43 @@
+Option Explicit
+
+Public gUF As Object
+Public gLineTarget As Long
+
+Public Sub ShowLineTypeMenu()
+    Dim pop As CommandBar
+
+    On Error Resume Next
+    Application.CommandBars("LineTypePopup").Delete
+    On Error GoTo 0
+
+    Set pop = Application.CommandBars.Add( _
+        Name:="LineTypePopup", _
+        Position:=msoBarPopup, _
+        Temporary:=True)
+
+    AddLineItem pop, "Solid", msoLineSolid
+    AddLineItem pop, "Dash", msoLineDash
+    AddLineItem pop, "Dot", msoLineRoundDot
+    AddLineItem pop, "Dash Dot", msoLineDashDot
+    AddLineItem pop, "Dash Dot Dot", msoLineDashDotDot
+    AddLineItem pop, "Long Dash", msoLineLongDash
+    AddLineItem pop, "Long Dash Dot", msoLineLongDashDot
+    AddLineItem pop, "Long Dash Dot Dot", msoLineLongDashDotDot
+
+    pop.ShowPopup
+End Sub
+
+Private Sub AddLineItem(pop As CommandBar, caption As String, dashStyle As Long)
+    Dim btn As CommandBarButton
+    Set btn = pop.Controls.Add(Type:=msoControlButton)
+    btn.Caption = caption
+    btn.Tag = CStr(dashStyle)
+    btn.OnAction = "PickLineType_Apply"
+End Sub
+
+Public Sub PickLineType_Apply()
+    Dim dashStyle As Long
+    dashStyle = CLng(Application.CommandBars.ActionControl.Tag)
+
+    gUF.SetLineType gLineTarget, dashStyle
+End Sub
