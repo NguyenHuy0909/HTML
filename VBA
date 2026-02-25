@@ -18,3 +18,22 @@ Private Sub InitChartArr()
                           11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
     End If
 End Sub
+Public Function GetChartArray(ByVal groupType As ChartGroup) As Variant
+
+    Select Case groupType
+        
+        Case cgERP
+            GetChartArray = Array(1, 2, 3, 4, 5)
+            
+        Case cgFFT
+            GetChartArray = Array(6, 7, 8, 9, 10)
+            
+        Case cgSummary
+            GetChartArray = Array(11, 12, 13)
+            
+        Case cgCompare
+            GetChartArray = Array(14, 15, 16, 17)
+            
+    End Select
+
+End Function
