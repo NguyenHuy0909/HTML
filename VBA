@@ -37,3 +37,29 @@ Public Function GetChartArray(ByVal groupType As ChartGroup) As Variant
     End Select
 
 End Function
+
+Public Function GetChartArrayMulti(ParamArray groups() As Variant) As Variant
+
+    Dim result() As Variant
+    Dim tempArr As Variant
+    Dim g As Variant
+    Dim i As Long
+    Dim idx As Long
+    
+    idx = -1
+    
+    For Each g In groups
+        
+        tempArr = GetChartArray(g)
+        
+        For i = LBound(tempArr) To UBound(tempArr)
+            idx = idx + 1
+            ReDim Preserve result(idx)
+            result(idx) = tempArr(i)
+        Next i
+        
+    Next g
+    
+    GetChartArrayMulti = result
+
+End Function
