@@ -1,65 +1,26 @@
-Sub Link_chart_data()
+Private Sub SetSeriesData( _
+        ByVal ch As Chart, _
+        ByVal seriesIndex As Long, _
+        ByVal ws As Worksheet, _
+        ByVal xCol As Long, _
+        ByVal yCol As Long, _
+        ByVal startRow As Long, _
+        ByVal endRow As Long, _
+        Optional ByVal lineColor As Long = -1, _
+        Optional ByVal dashStyle As MsoLineDashStyle = msoLineSolid _
+    )
 
-    InitChartArr   ' đảm bảo mảng đã được tạo
-
-    For chart_index = LBound(gChartArr) To UBound(gChartArr)
-        ' code của bạn
-    Next chart_index
+    With ch.FullSeriesCollection(seriesIndex)
+        
+        .XValues = ws.Range(ws.Cells(startRow, xCol), ws.Cells(endRow, xCol))
+        .Values = ws.Range(ws.Cells(startRow, yCol), ws.Cells(endRow, yCol))
+        
+        If lineColor <> -1 Then
+            .Format.Line.ForeColor.RGB = lineColor
+        End If
+        
+        .Format.Line.DashStyle = dashStyle
+        
+    End With
 
 End Sub
-
-Option Explicit
-
-Public gChartArr As Variant
-
-Private Sub InitChartArr()
-    If IsEmpty(gChartArr) Then
-        gChartArr = Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, _
-                          11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
-    End If
-End Sub
-Public Function GetChartArray(ByVal groupType As ChartGroup) As Variant
-
-    Select Case groupType
-        
-        Case cgERP
-            GetChartArray = Array(1, 2, 3, 4, 5)
-            
-        Case cgFFT
-            GetChartArray = Array(6, 7, 8, 9, 10)
-            
-        Case cgSummary
-            GetChartArray = Array(11, 12, 13)
-            
-        Case cgCompare
-            GetChartArray = Array(14, 15, 16, 17)
-            
-    End Select
-
-End Function
-
-Public Function GetChartArrayMulti(ParamArray groups() As Variant) As Variant
-
-    Dim result() As Variant
-    Dim tempArr As Variant
-    Dim g As Variant
-    Dim i As Long
-    Dim idx As Long
-    
-    idx = -1
-    
-    For Each g In groups
-        
-        tempArr = GetChartArray(g)
-        
-        For i = LBound(tempArr) To UBound(tempArr)
-            idx = idx + 1
-            ReDim Preserve result(idx)
-            result(idx) = tempArr(i)
-        Next i
-        
-    Next g
-    
-    GetChartArrayMulti = result
-
-End Function
