@@ -1,26 +1,24 @@
-Private Sub SetSeriesData( _
-        ByVal ch As Chart, _
-        ByVal seriesIndex As Long, _
-        ByVal ws As Worksheet, _
-        ByVal xCol As Long, _
-        ByVal yCol As Long, _
-        ByVal startRow As Long, _
-        ByVal endRow As Long, _
-        Optional ByVal lineColor As Long = -1, _
-        Optional ByVal dashStyle As MsoLineDashStyle = msoLineSolid _
-    )
+Public Function GetArrayFromSheet(ByVal groupName As String) As Variant
 
-    With ch.FullSeriesCollection(seriesIndex)
-        
-        .XValues = ws.Range(ws.Cells(startRow, xCol), ws.Cells(endRow, xCol))
-        .Values = ws.Range(ws.Cells(startRow, yCol), ws.Cells(endRow, yCol))
-        
-        If lineColor <> -1 Then
-            .Format.Line.ForeColor.RGB = lineColor
-        End If
-        
-        .Format.Line.DashStyle = dashStyle
-        
-    End With
+    Dim ws As Worksheet
+    Dim lastCol As Long
+    Dim rng As Range
+    
+    Set ws = ThisWorkbook.Sheets("Config")
+    
+    ' Tìm dòng chứa groupName
+    Dim foundCell As Range
+    Set foundCell = ws.Columns(1).Find(groupName, LookAt:=xlWhole)
+    
+    If foundCell Is Nothing Then
+        MsgBox "Không tìm thấy group: " & groupName
+        Exit Function
+    End If
+    
+    lastCol = ws.Cells(foundCell.Row, ws.Columns.Count).End(xlToLeft).Column
+    
+    Set rng = ws.Range(ws.Cells(foundCell.Row, 2), ws.Cells(foundCell.Row, lastCol))
+    
+    GetArrayFromSheet = Application.Transpose(Application.Transpose(rng.Value))
 
-End Sub
+End Function
