@@ -1,16 +1,25 @@
-Public Function GetColorArray(ByVal rng As Range) As Variant
+Public Function GetLineStyle(ByVal styleText As String) As MsoLineDashStyle
 
-    Dim arr() As Long
-    Dim i As Long
+    Select Case LCase(Trim(styleText))
     
-    ReDim arr(1 To rng.Rows.Count)
-    
-    For i = 1 To rng.Rows.Count
-        arr(i) = rng.Cells(i, 1).Interior.Color
-    Next i
-    
-    GetColorArray = arr
+        Case "linesolid"
+            GetLineStyle = msoLineSolid
+            
+        Case "linedash"
+            GetLineStyle = msoLineDash
+            
+        Case "linedot"
+            GetLineStyle = msoLineDot
+            
+        Case "linedashdot"
+            GetLineStyle = msoLineDashDot
+            
+        Case "linedashdotdot"
+            GetLineStyle = msoLineDashDotDot
+            
+        Case Else
+            GetLineStyle = msoLineSolid   ' default nếu sai
+        
+    End Select
 
 End Function
-
-colorArr = GetColorArray(Sheets("Config").Range("D27:D36"))
