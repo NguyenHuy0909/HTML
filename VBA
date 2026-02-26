@@ -1,24 +1,16 @@
-Public Function GetArrayFromSheet(ByVal groupName As String) As Variant
+Public Function GetColorArray(ByVal rng As Range) As Variant
 
-    Dim ws As Worksheet
-    Dim lastCol As Long
-    Dim rng As Range
+    Dim arr() As Long
+    Dim i As Long
     
-    Set ws = ThisWorkbook.Sheets("Config")
+    ReDim arr(1 To rng.Rows.Count)
     
-    ' Tìm dòng chứa groupName
-    Dim foundCell As Range
-    Set foundCell = ws.Columns(1).Find(groupName, LookAt:=xlWhole)
+    For i = 1 To rng.Rows.Count
+        arr(i) = rng.Cells(i, 1).Interior.Color
+    Next i
     
-    If foundCell Is Nothing Then
-        MsgBox "Không tìm thấy group: " & groupName
-        Exit Function
-    End If
-    
-    lastCol = ws.Cells(foundCell.Row, ws.Columns.Count).End(xlToLeft).Column
-    
-    Set rng = ws.Range(ws.Cells(foundCell.Row, 2), ws.Cells(foundCell.Row, lastCol))
-    
-    GetArrayFromSheet = Application.Transpose(Application.Transpose(rng.Value))
+    GetColorArray = arr
 
 End Function
+
+colorArr = GetColorArray(Sheets("Config").Range("D27:D36"))
