@@ -1,24 +1,11 @@
-Function MergeArray(arr1 As Variant, arr2 As Variant) As Variant
+With ActiveSheet.Shapes("Line 1").Line
     
-    Dim i As Long
-    Dim n1 As Long, n2 As Long
-    Dim result() As Variant
+    .BeginArrowheadStyle = msoArrowheadOval   ' hình tròn
+    .BeginArrowheadLength = msoArrowheadLengthLong
+    .BeginArrowheadWidth = msoArrowheadWidthWide
     
-    n1 = UBound(arr1) - LBound(arr1) + 1
-    n2 = UBound(arr2) - LBound(arr2) + 1
-    
-    ReDim result(1 To n1 + n2)
-    
-    ' copy arr1
-    For i = 1 To n1
-        result(i) = arr1(LBound(arr1) + i - 1)
-    Next i
-    
-    ' copy arr2
-    For i = 1 To n2
-        result(n1 + i) = arr2(LBound(arr2) + i - 1)
-    Next i
-    
-    MergeArray = result
-    
-End Function
+    .EndArrowheadStyle = msoArrowheadOval
+    .EndArrowheadLength = msoArrowheadLengthLong
+    .EndArrowheadWidth = msoArrowheadWidthWide
+
+End With
