@@ -1,32 +1,8 @@
-Sub ChangeColorFor9Series()
-    Dim ch As Chart
-    Dim s As Series
-    Dim i As Integer
-
-    ' Set reference to the active chart (you can change this to a specific chart if needed)
-    Set ch = ActiveChart
-
-    ' Define an array of 9 custom RGB colors
-    Dim colors(1 To 9) As Long
-    colors(1) = RGB(255, 0, 0)     ' Red
-    colors(2) = RGB(0, 128, 0)     ' Green
-    colors(3) = RGB(0, 0, 255)     ' Blue
-    colors(4) = RGB(255, 165, 0)   ' Orange
-    colors(5) = RGB(128, 0, 128)   ' Purple
-    colors(6) = RGB(0, 255, 255)   ' Cyan
-    colors(7) = RGB(255, 192, 203) ' Pink
-    colors(8) = RGB(128, 128, 0)   ' Olive
-    colors(9) = RGB(0, 0, 0)       ' Black
-
-    ' Loop through the first 9 series and assign a specific color to each
-    For i = 1 To 9
-        Set s = ch.FullSeriesCollection(i)
-        With s.Format.Line
-            .Visible = msoTrue               ' Make the line visible
-            .ForeColor.RGB = colors(i)       ' Set the line color
-            .Transparency = 0                ' No transparency
-        End With
-    Next i
-
-    MsgBox "Colors have been updated for 9 series.", vbInformation
-End Sub
+=AND(
+   MOD(COLUMN()-COLUMN($A1),4)<3,
+   A1=
+   MAX(
+      INDEX($A1:$G1,1,4*INT((COLUMN()-COLUMN($A1))/4)+1):
+      INDEX($A1:$G1,1,4*INT((COLUMN()-COLUMN($A1))/4)+3)
+   )
+)
