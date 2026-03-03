@@ -1,68 +1,33 @@
 Private Sub UpdateAxisBlock( _
     ByVal Target As Range, _
     ByVal chartIndex As Variant, _
-    ByVal rngMin As Range, _
-    ByVal rngMax As Range, _
-    ByVal rngMajor As Range, _
-    ByVal rngMinor As Range)
+    ByVal axisCells As Variant)
 
-    Dim val As Double
     Dim ch As ChartObject
+    Dim val As Double
+    Dim i As Long
     
     Set ch = Me.ChartObjects("Chart " & chartIndex)
     
     With ch.Chart.Axes(xlValue)
         
-        If Not Intersect(Target, rngMin) Is Nothing Then
-            val = CDbl(rngMin.Value)
-            .MinimumScale = val
-        End If
-        
-        If Not Intersect(Target, rngMax) Is Nothing Then
-            val = CDbl(rngMax.Value)
-            .MaximumScale = val
-        End If
-        
-        If Not Intersect(Target, rngMajor) Is Nothing Then
-            val = CDbl(rngMajor.Value)
-            .MajorUnit = val
-        End If
-        
-        If Not Intersect(Target, rngMinor) Is Nothing Then
-            val = CDbl(rngMinor.Value)
-            .MinorUnit = val
-        End If
+        For i = 0 To 3
+            
+            If Not Intersect(Target, axisCells(i)) Is Nothing Then
+                
+                val = CDbl(axisCells(i).Value)
+                
+                Select Case i
+                    Case 0: .MinimumScale = val
+                    Case 1: .MaximumScale = val
+                    Case 2: .MajorUnit = val
+                    Case 3: .MinorUnit = val
+                End Select
+                
+            End If
+            
+        Next i
         
     End With
-
-End Sub
-
-Private Sub Worksheet_Change(ByVal Target As Range)
-
-    Dim arr2 As Variant
-    Dim i As Variant
-    
-    If Intersect(Target, Me.Range("P3:P6")) Is Nothing Then Exit Sub
-    
-    Application.EnableEvents = False
-    Application.ScreenUpdating = False
-    
-    InitGlobalArray
-    arr2 = MergeArrays(Array(chartFFT_arr, chartMaxAmp_arr))
-    
-    For Each i In arr2
-        
-        UpdateAxisBlock _
-            Target, _
-            i, _
-            Me.Range("P3"), _
-            Me.Range("P4"), _
-            Me.Range("P5"), _
-            Me.Range("P6")
-        
-    Next i
-    
-    Application.EnableEvents = True
-    Application.ScreenUpdating = True
 
 End Sub
