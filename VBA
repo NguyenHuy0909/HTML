@@ -1,26 +1,68 @@
-Public Function MergeArrays(arrGroup As Variant) As Variant
+Private Sub UpdateAxisBlock( _
+    ByVal Target As Range, _
+    ByVal chartIndex As Variant, _
+    ByVal rngMin As Range, _
+    ByVal rngMax As Range, _
+    ByVal rngMajor As Range, _
+    ByVal rngMinor As Range)
+
+    Dim val As Double
+    Dim ch As ChartObject
     
-    Dim g As Long, i As Long
-    Dim total As Long
-    Dim result() As Variant
-    Dim idx As Long
+    Set ch = Me.ChartObjects("Chart " & chartIndex)
     
-    ' Tính tổng số phần tử
-    For g = LBound(arrGroup) To UBound(arrGroup)
-        total = total + (UBound(arrGroup(g)) - LBound(arrGroup(g)) + 1)
-    Next g
+    With ch.Chart.Axes(xlValue)
+        
+        If Not Intersect(Target, rngMin) Is Nothing Then
+            val = CDbl(rngMin.Value)
+            .MinimumScale = val
+        End If
+        
+        If Not Intersect(Target, rngMax) Is Nothing Then
+            val = CDbl(rngMax.Value)
+            .MaximumScale = val
+        End If
+        
+        If Not Intersect(Target, rngMajor) Is Nothing Then
+            val = CDbl(rngMajor.Value)
+            .MajorUnit = val
+        End If
+        
+        If Not Intersect(Target, rngMinor) Is Nothing Then
+            val = CDbl(rngMinor.Value)
+            .MinorUnit = val
+        End If
+        
+    End With
+
+End Sub
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+
+    Dim arr2 As Variant
+    Dim i As Variant
     
-    ReDim result(0 To total - 1)
+    If Intersect(Target, Me.Range("P3:P6")) Is Nothing Then Exit Sub
     
-    idx = 0
+    Application.EnableEvents = False
+    Application.ScreenUpdating = False
     
-    For g = LBound(arrGroup) To UBound(arrGroup)
-        For i = LBound(arrGroup(g)) To UBound(arrGroup(g))
-            result(idx) = arrGroup(g)(i)
-            idx = idx + 1
-        Next i
-    Next g
+    InitGlobalArray
+    arr2 = MergeArrays(Array(chartFFT_arr, chartMaxAmp_arr))
     
-    MergeArrays = result
+    For Each i In arr2
+        
+        UpdateAxisBlock _
+            Target, _
+            i, _
+            Me.Range("P3"), _
+            Me.Range("P4"), _
+            Me.Range("P5"), _
+            Me.Range("P6")
+        
+    Next i
     
-End Function
+    Application.EnableEvents = True
+    Application.ScreenUpdating = True
+
+End Sub
