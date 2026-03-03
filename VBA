@@ -1,11 +1,26 @@
-With ActiveSheet.Shapes("Line 1").Line
+Public Function MergeArrays(arrGroup As Variant) As Variant
     
-    .BeginArrowheadStyle = msoArrowheadOval   ' hình tròn
-    .BeginArrowheadLength = msoArrowheadLengthLong
-    .BeginArrowheadWidth = msoArrowheadWidthWide
+    Dim g As Long, i As Long
+    Dim total As Long
+    Dim result() As Variant
+    Dim idx As Long
     
-    .EndArrowheadStyle = msoArrowheadOval
-    .EndArrowheadLength = msoArrowheadLengthLong
-    .EndArrowheadWidth = msoArrowheadWidthWide
-
-End With
+    ' Tính tổng số phần tử
+    For g = LBound(arrGroup) To UBound(arrGroup)
+        total = total + (UBound(arrGroup(g)) - LBound(arrGroup(g)) + 1)
+    Next g
+    
+    ReDim result(0 To total - 1)
+    
+    idx = 0
+    
+    For g = LBound(arrGroup) To UBound(arrGroup)
+        For i = LBound(arrGroup(g)) To UBound(arrGroup(g))
+            result(idx) = arrGroup(g)(i)
+            idx = idx + 1
+        Next i
+    Next g
+    
+    MergeArrays = result
+    
+End Function
