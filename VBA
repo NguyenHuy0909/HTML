@@ -1,20 +1,51 @@
 Option Explicit
 
-Public gChartArr As Variant
+Public chartFFT_arr As Variant
+Public Narrow_col_arr As Variant
+Public Octave_col_arr As Variant
+Public chartPOA_arr As Variant
+Public RowPOA_arr As Variant
+Public ColumnPOA_arr As Variant
+Public chartMaxAmp_arr As Variant
+Public ColumnFreq_arr As Variant
+Public NarrowColor_arr As Variant
+Public OctaveColor_arr As Variant
+Public ws_config As Worksheet
 
-Private Sub InitChartArr()
-    If IsEmpty(gChartArr) Then
-        gChartArr = Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, _
-                          11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21)
-    End If
-End Sub
+Public Sub InitGlobalArray(ChartDict As Object, ColorDict As Object, IndexDict As Object)
+    Set ws_config = ThisWorkbook.Sheets("Config")
 
-Sub Link_chart_data()
+    chartFFT_arr = GetArrayFromSheet("chart_fft")
+    Narrow_col_arr = GetArrayFromSheet("column_NarrowBand")
+    Octave_col_arr = GetArrayFromSheet("column_OctaveBand")
+    chartPOA_arr = GetArrayFromSheet("chart_poa")
+    RowPOA_arr = GetArrayFromSheet("row_poa")
+    ColumnPOA_arr = GetArrayFromSheet("column_poa")
+    chartMaxAmp_arr = GetArrayFromSheet("chart_max_amp")
+    ColumnFreq_arr = GetArrayFromSheet("max_freq_column")
+    NarrowColor_arr = GetColorArray(ws_config.Range("D36:D45"))
+    OctaveColor_arr = GetColorArray(ws_config.Range("G36:G45"))
 
-    InitChartArr   ' đảm bảo mảng đã được tạo
+    Set ChartDict = CreateObject("Scripting.Dictionary")
+    Set ColorDict = CreateObject("Scripting.Dictionary")
+    Set IndexDict = CreateObject("Scripting.Dictionary")
 
-    For chart_index = LBound(gChartArr) To UBound(gChartArr)
-        ' code của bạn
-    Next chart_index
+    With ChartDict
+        .Add "chartFFT", chartFFT_arr
+        .Add "chartPOA", chartPOA_arr
+        .Add "chartMaxAmp", chartMaxAmp_arr
+    End With
 
+    With ColorDict
+        .Add "NarrowColor", NarrowColor_arr
+        .Add "OctaveColor", OctaveColor_arr
+    End With
+
+    With IndexDict
+        .Add "Narrow_col", Narrow_col_arr
+        .Add "Octave_col", Octave_col_arr
+        .Add "RowPOA", RowPOA_arr
+        .Add "ColumnPOA", ColumnPOA_arr
+        .Add "ColumnFreq", ColumnFreq_arr
+    End With
 End Sub
