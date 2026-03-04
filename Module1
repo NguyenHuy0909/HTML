@@ -1,0 +1,29 @@
+Option Explicit
+
+Public chartFFT_arr As Variant
+Public Narrow_col_arr As Variant
+Public Octave_col_arr As Variant
+Public chartPOA_arr As Variant
+Public RowPOA_arr As Variant
+Public ColumnPOA_arr As Variant
+Public chartMaxAmp_arr As Variant
+Public ColumnFreq_arr As Variant
+Public NarrowColor_arr As Variant
+Public OctaveColor_arr As Variant
+
+' Module 1: chỉ khởi tạo các array cấu hình
+Public Sub InitGlobalArray()
+    Dim ws_config As Worksheet
+    Set ws_config = ThisWorkbook.Sheets("Config")
+
+    chartFFT_arr = GetArrayFromSheet("chart_fft")
+    Narrow_col_arr = GetArrayFromSheet("column_NarrowBand")
+    Octave_col_arr = GetArrayFromSheet("column_OctaveBand")
+    chartPOA_arr = GetArrayFromSheet("chart_poa")
+    RowPOA_arr = GetArrayFromSheet("row_poa")
+    ColumnPOA_arr = GetArrayFromSheet("column_poa")
+    chartMaxAmp_arr = GetArrayFromSheet("chart_max_amp")
+    ColumnFreq_arr = GetArrayFromSheet("max_freq_column")
+    NarrowColor_arr = GetColorArray(ws_config.Range("D36:D45"))
+    OctaveColor_arr = GetColorArray(ws_config.Range("G36:G45"))
+End Sub
