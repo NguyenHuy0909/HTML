@@ -1,0 +1,105 @@
+Sub SetColor()
+
+Dim co As Chart
+Dim chart_arr As Variant
+Dim chartIndex As Variant
+
+Dim ws_data As Worksheet
+Dim ws_config As Worksheet
+Dim ws_matome As Worksheet
+
+Dim NumberModels As Long
+Dim SeriesIndex As Long
+Dim n As Long
+Dim SheetName As String
+
+Call InitGlobalArray
+
+Set ws_config = ThisWorkbook.Sheets("Config")
+Set ws_matome = ThisWorkbook.Sheets("まとめ")
+
+NumberModels = ws_config.Range("D3")
+
+'================ FFT Chart =================
+For chartIndex = LBound(chartFFT_arr) To UBound(chartFFT_arr)
+
+    n = 1
+    Set co = ws_matome.ChartObjects("Chart " & chartFFT_arr(chartIndex)).Chart
+
+    For SeriesIndex = 1 To NumberModels
+
+        SheetName = ws_config.Range("D2") & SeriesIndex & ws_config.Range("E2")
+        Set ws_data = ThisWorkbook.Sheets(SheetName)
+
+        ' Narrow Band
+        SetColorSeries co, SeriesIndex * 2 - 1, ws_data, _
+        NarrowColor_arr(n), ws_config.Cells(n + 35, 5), ws_config.Cells(n + 35, 6)
+
+        '========== 1/3 Octave Band ==========
+        SetColorSeries co, SeriesIndex * 2, ws_data, _
+        OctaveColor_arr(n), ws_config.Cells(n + 35, 8), ws_config.Cells(n + 35, 9)
+
+        n = n + 1
+
+    Next SeriesIndex
+
+Next chartIndex
+
+
+'================ P.O.A Chart =================
+For chartIndex = LBound(chartPOA_arr) To UBound(chartPOA_arr)
+
+    n = 1
+    Set co = ws_matome.ChartObjects("Chart " & chartPOA_arr(chartIndex)).Chart
+
+    For SeriesIndex = 1 To NumberModels
+
+        SheetName = ws_config.Range("D2") & SeriesIndex & ws_config.Range("E2")
+        Set ws_data = ThisWorkbook.Sheets(SheetName)
+
+        SetColorSeries co, SeriesIndex, ws_data, _
+        NarrowColor_arr(n), ws_config.Cells(n + 35, 5), ws_config.Cells(n + 35, 6)
+
+        n = n + 1
+
+    Next SeriesIndex
+
+Next chartIndex
+
+
+'================ Chart Max Amplitude =================
+For chartIndex = LBound(chartMaxAmp_arr) To UBound(chartMaxAmp_arr)
+
+    n = 1
+    Set co = ws_matome.ChartObjects("Chart " & chartMaxAmp_arr(chartIndex)).Chart
+
+    For SeriesIndex = 1 To NumberModels
+
+        SheetName = ws_config.Range("D2") & SeriesIndex & ws_config.Range("E2")
+        Set ws_data = ThisWorkbook.Sheets(SheetName)
+
+        SetColorSeries co, SeriesIndex, ws_data, _
+        OctaveColor_arr(n), ws_config.Cells(n + 35, 8), ws_config.Cells(n + 35, 9)
+
+        With co.FullSeriesCollection(SeriesIndex).Format.Line
+            .BeginArrowheadStyle = msoArrowheadOval
+            .BeginArrowheadLength = msoArrowheadLong
+            .BeginArrowheadWidth = msoArrowheadWide
+
+            .EndArrowheadStyle = msoArrowheadOval
+            .EndArrowheadLength = msoArrowheadLong
+            .EndArrowheadWidth = msoArrowheadWide
+        End With
+
+        n = n + 1
+
+    Next SeriesIndex
+
+Next chartIndex
+
+
+Call SetColor_Label
+
+ThisWorkbook.Sheets("まとめ").Select
+
+End Sub
