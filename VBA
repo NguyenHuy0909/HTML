@@ -12,7 +12,7 @@ Public NarrowColor_arr As Variant
 Public OctaveColor_arr As Variant
 Public ws_config As Worksheet
 
-Public Sub InitGlobalArray(ChartDict As Object, ColorDict As Object, IndexDict As Object)
+Public Sub InitGlobalArray()
     Set ws_config = ThisWorkbook.Sheets("Config")
 
     chartFFT_arr = GetArrayFromSheet("chart_fft")
@@ -25,27 +25,4 @@ Public Sub InitGlobalArray(ChartDict As Object, ColorDict As Object, IndexDict A
     ColumnFreq_arr = GetArrayFromSheet("max_freq_column")
     NarrowColor_arr = GetColorArray(ws_config.Range("D36:D45"))
     OctaveColor_arr = GetColorArray(ws_config.Range("G36:G45"))
-
-    Set ChartDict = CreateObject("Scripting.Dictionary")
-    Set ColorDict = CreateObject("Scripting.Dictionary")
-    Set IndexDict = CreateObject("Scripting.Dictionary")
-
-    With ChartDict
-        .Add "chartFFT", chartFFT_arr
-        .Add "chartPOA", chartPOA_arr
-        .Add "chartMaxAmp", chartMaxAmp_arr
-    End With
-
-    With ColorDict
-        .Add "NarrowColor", NarrowColor_arr
-        .Add "OctaveColor", OctaveColor_arr
-    End With
-
-    With IndexDict
-        .Add "Narrow_col", Narrow_col_arr
-        .Add "Octave_col", Octave_col_arr
-        .Add "RowPOA", RowPOA_arr
-        .Add "ColumnPOA", ColumnPOA_arr
-        .Add "ColumnFreq", ColumnFreq_arr
-    End With
 End Sub
