@@ -1,33 +1,41 @@
-Private Sub UpdateAxisBlock( _
-    ByVal Target As Range, _
-    ByVal chartIndex As Variant, _
-    ByVal axisCells As Variant)
+Public Function GetArrayFromSheet(ByVal groupName As String) As Variant
 
-    Dim ch As ChartObject
-    Dim val As Double
-    Dim i As Long
+    Dim ws As Worksheet
+    Dim lastCol As Long
+    Dim rng As Range, FCell As Range
+    Dim tmpArr As Variant
+    Dim result() As Variant
+    Dim i As Long, n As Long
     
-    Set ch = Me.ChartObjects("Chart " & chartIndex)
+    Set ws = ThisWorkbook.Sheets("Config")
     
-    With ch.Chart.Axes(xlValue)
-        
-        For i = 0 To 3
-            
-            If Not Intersect(Target, axisCells(i)) Is Nothing Then
-                
-                val = CDbl(axisCells(i).Value)
-                
-                Select Case i
-                    Case 0: .MinimumScale = val
-                    Case 1: .MaximumScale = val
-                    Case 2: .MajorUnit = val
-                    Case 3: .MinorUnit = val
-                End Select
-                
-            End If
-            
-        Next i
-        
-    End With
+    Set FCell = FoundCellFromSheet(ws, groupName)
+    If FCell Is Nothing Then Exit Function
+    
+    lastCol = ws.Cells(FCell.Row, ws.Columns.Count).End(xlToLeft).Column
+    Set rng = ws.Range(ws.Cells(FCell.Row, 4), ws.Cells(FCell.Row, lastCol))
+    
+    tmpArr = rng.Value   ' 2D array (1 to 1, 1 to n)
+    
+    ' Đếm phần tử không rỗng
+    For i = 1 To UBound(tmpArr, 2)
+        If Len(Trim(tmpArr(1, i) & "")) > 0 Then
+            n = n + 1
+        End If
+    Next i
+    
+    If n = 0 Then Exit Function
+    
+    ReDim result(1 To n)
+    n = 0
+    
+    For i = 1 To UBound(tmpArr, 2)
+        If Len(Trim(tmpArr(1, i) & "")) > 0 Then
+            n = n + 1
+            result(n) = tmpArr(1, i)
+        End If
+    Next i
+    
+    GetArrayFromSheet = result
 
-End Sub
+End Function
