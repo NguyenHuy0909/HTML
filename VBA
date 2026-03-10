@@ -1,13 +1,13 @@
-Function GetFirstCol(ws As Worksheet, flag As Long) As Long
+Dim arr As Variant
+Dim result() As Variant
+Dim i As Long, n As Long
 
-    Dim lastcol As Long
-    
-    lastcol = ws.Cells(6, ws.Columns.Count).End(xlToLeft).Column
-    
-    If flag = 0 Then
-        GetFirstCol = 2
-    Else
-        GetFirstCol = lastcol + 1
+arr = Range("A1:A10").Value
+
+For i = 1 To UBound(arr, 1)
+    If arr(i, 1) <> "" Then
+        n = n + 1
+        ReDim Preserve result(1 To n)
+        result(n) = arr(i, 1)
     End If
-
-End Function
+Next i
