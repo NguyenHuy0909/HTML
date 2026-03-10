@@ -1,19 +1,29 @@
-Function OpenGIDFile(filepath As String) As Object
+Sub ParseChannelUnit(buffer() As String, _
+                     ByRef channelArr As Variant, _
+                     ByRef unitArr As Variant)
 
-    Dim fso As Object
-    Dim ts As Object
-    
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    
-    If fso.FileExists(filepath) Then
-    
-        Set ts = fso.OpenTextFile(filepath, 1)
-        Set OpenGIDFile = ts
-        
-    Else
-    
-        Set OpenGIDFile = Nothing
-        
-    End If
+    Dim parts As Variant
+    Dim i As Long
+    Dim n As Long
 
-End Function
+    '----- CHANNEL -----
+    parts = Split(buffer(1), "'")
+
+    n = UBound(parts) \ 2
+    ReDim channelArr(1 To n)
+
+    For i = 1 To n
+        channelArr(i) = Trim(parts(2 * i))
+    Next i
+
+    '----- UNIT -----
+    parts = Split(buffer(2), "'")
+
+    n = UBound(parts) \ 2
+    ReDim unitArr(1 To n)
+
+    For i = 1 To n
+        unitArr(i) = Trim(parts(2 * i))
+    Next i
+
+End Sub
