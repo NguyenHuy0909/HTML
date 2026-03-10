@@ -1,0 +1,13 @@
+Function GetFirstCol(ws As Worksheet, flag As Long) As Long
+
+    Dim lastcol As Long
+    
+    lastcol = ws.Cells(6, ws.Columns.Count).End(xlToLeft).Column
+    
+    If flag = 0 Then
+        GetFirstCol = 2
+    Else
+        GetFirstCol = lastcol + 1
+    End If
+
+End Function
