@@ -1,74 +1,97 @@
-Sub ImportGID(filepath As String, ws_data As Worksheet, _
-              first_row As Long, col_header As Long)
+Sub WriteHeader(ws As Worksheet, _
+                row_header As Long, _
+                col_header As Long, _
+                modelName As String, _
+                rpm As String, _
+                nodeID As String, _
+                dof As String, _
+                channelArr As Variant, _
+                unitArr As Variant)
+
+    Dim i As Long
+
+    ws.Cells(row_header, 1) = "Model"
+    ws.Cells(row_header + 1, 1) = "RPM"
+    ws.Cells(row_header + 2, 1) = "Node ID"
+    ws.Cells(row_header + 3, 1) = "DoF"
+    ws.Cells(row_header + 4, 1) = "Channel"
+    ws.Cells(row_header + 5, 1) = "Unit"
+
+    For i = LBound(channelArr) To UBound(channelArr)
+
+        ws.Cells(row_header, col_header + i - 1) = modelName
+        ws.Cells(row_header + 1, col_header + i - 1) = rpm
+        ws.Cells(row_header + 2, col_header + i - 1) = nodeID
+        ws.Cells(row_header + 3, col_header + i - 1) = dof
+
+        ws.Cells(row_header + 4, col_header + i - 1) = channelArr(i)
+        ws.Cells(row_header + 5, col_header + i - 1) = unitArr(i)
+
+    Next i
+
+End Sub
+'===========
+Sub ImportGID(filepath As String, row_header As Long, col_header As Long)
 
     Dim fso As Object
     Dim ts As Object
     Dim line As String
-    
-    Dim dataArr() As Variant
-    Dim rowCount As Long
-    Dim colCount As Long
-    
+    Dim col As Long
     Dim i As Long
-    Dim maxCol As Long
 
     Set fso = CreateObject("Scripting.FileSystemObject")
     Set ts = fso.OpenTextFile(filepath, 1)
 
-    '--- Find END ---
+    'find END
     Do Until ts.AtEndOfStream
         line = ts.ReadLine
-        If InStr(1, line, "END", vbBinaryCompare) > 0 Then Exit Do
+        If InStr(line, "END") > 0 Then Exit Do
     Loop
 
-    '--- First pass: count rows & max columns ---
-    Do Until ts.AtEndOfStream
-    
-        line = ts.ReadLine
-        
-        rowCount = rowCount + 1
-        
-        colCount = Len(line) \ 16
-        
-        If colCount > maxCol Then
-            maxCol = colCount
-        End If
-        
-    Loop
-
-    ts.Close
-
-    '--- Reopen file ---
-    Set ts = fso.OpenTextFile(filepath, 1)
-
-    '--- Find END again ---
-    Do Until ts.AtEndOfStream
-        line = ts.ReadLine
-        If InStr(1, line, "END", vbBinaryCompare) > 0 Then Exit Do
-    Loop
-
-    ReDim dataArr(1 To rowCount, 1 To maxCol)
-
-    '--- Read data ---
-    rowCount = 0
+    row_header = row_header + 6
 
     Do Until ts.AtEndOfStream
 
         line = ts.ReadLine
-        rowCount = rowCount + 1
-        
-        For i = 1 To maxCol
-        
-            dataArr(rowCount, i) = Trim(Mid(line, (i - 1) * 16 + 1, 16))
-            
+        col = col_header
+
+        For i = 1 To Len(line) Step 16
+
+            ws_data.Cells(row_header, col) = Trim(Mid(line, i, 16))
+            col = col + 1
+
         Next i
 
+        row_header = row_header + 1
+
     Loop
 
     ts.Close
 
-    '--- Write to Excel in one operation ---
-    ws_data.Cells(first_row, col_header).Resize(UBound(dataArr, 1), _
-                                                UBound(dataArr, 2)).Value = dataArr
+End Sub
+'=============
+Sub ProcessGID(filepath As String)
+
+    Dim ts As Object
+    Dim channelArr As Variant
+    Dim unitArr As Variant
+    Dim modelName As String
+    Dim rpm As String
+    Dim nodeID As String
+    Dim dof As String
+    Dim row_header As Long
+    Dim col_header As Long
+
+    Set ts = OpenGIDFile(filepath)
+
+    Call ReadGIDHeader(ts, modelName, rpm, nodeID, dof, channelArr, unitArr)
+
+    row_header = ws_data.Cells(ws_data.Rows.Count, 1).End(xlUp).Row + 2
+
+    col_header = 2
+
+    Call WriteHeader(ws_data, row_header, col_header, modelName, rpm, nodeID, dof, channelArr, unitArr)
+
+    Call ImportGID(filepath, row_header, col_header)
 
 End Sub
