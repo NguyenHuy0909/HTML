@@ -1,29 +1,19 @@
-Function RangeToArray1D(rng As Range) As Variant
+Function OpenGIDFile(filepath As String) As Object
 
-    Dim data As Variant
-    Dim arr() As Variant
-    Dim i As Long, j As Long
-    Dim count As Long
-
-    data = rng.Value
-
-    'Đếm số ô có dữ liệu
-    For i = 1 To rng.Cells.Count
-        If rng.Cells(i).Value <> "" Then
-            count = count + 1
-        End If
-    Next i
-
-    ReDim arr(1 To count)
-
-    j = 1
-    For i = 1 To rng.Cells.Count
-        If rng.Cells(i).Value <> "" Then
-            arr(j) = rng.Cells(i).Value
-            j = j + 1
-        End If
-    Next i
-
-    RangeToArray1D = arr
+    Dim fso As Object
+    Dim ts As Object
+    
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    
+    If fso.FileExists(filepath) Then
+    
+        Set ts = fso.OpenTextFile(filepath, 1)
+        Set OpenGIDFile = ts
+        
+    Else
+    
+        Set OpenGIDFile = Nothing
+        
+    End If
 
 End Function
