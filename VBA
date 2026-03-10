@@ -1,34 +1,22 @@
-Function ReadGIDHeaderValues(ts As Object) As Object
+Sub WriteSelectedHeader(ws As Worksheet, _
+                        row_header As Long, _
+                        col_header As Long, _
+                        header_control As Variant, _
+                        headerDict As Object)
 
-    Dim dict As Object
-    Dim line As String
+    Dim i As Long
     Dim key As String
-    Dim value As String
-    Dim parts As Variant
 
-    Set dict = CreateObject("Scripting.Dictionary")
+    For i = LBound(header_control) To UBound(header_control)
 
-    Do Until ts.AtEndOfStream
+        key = header_control(i)
 
-        line = Trim(ts.ReadLine)
+        ws.Cells(row_header + i, 1) = key
 
-        If InStr(line, "END") > 0 Then Exit Do
-
-        If InStr(line, "=") > 0 Then
-
-            parts = Split(line, "=")
-
-            key = Trim(parts(0))
-            value = Trim(parts(1))
-
-            value = Replace(value, "'", "")
-
-            dict(key) = value
-
+        If headerDict.Exists(key) Then
+            ws.Cells(row_header + i, col_header) = headerDict(key)
         End If
 
-    Loop
+    Next i
 
-    Set ReadGIDHeaderValues = dict
-
-End Function
+End Sub
