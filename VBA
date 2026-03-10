@@ -1,13 +1,29 @@
-Dim arr As Variant
-Dim result() As Variant
-Dim i As Long, n As Long
+Function RangeToArray1D(rng As Range) As Variant
 
-arr = Range("A1:A10").Value
+    Dim data As Variant
+    Dim result() As Variant
+    Dim i As Long
+    
+    data = rng.Value
 
-For i = 1 To UBound(arr, 1)
-    If arr(i, 1) <> "" Then
-        n = n + 1
-        ReDim Preserve result(1 To n)
-        result(n) = arr(i, 1)
+    If rng.Rows.Count > 1 Then
+    
+        ReDim result(1 To rng.Rows.Count)
+        
+        For i = 1 To rng.Rows.Count
+            result(i) = data(i, 1)
+        Next i
+        
+    Else
+    
+        ReDim result(1 To rng.Columns.Count)
+        
+        For i = 1 To rng.Columns.Count
+            result(i) = data(1, i)
+        Next i
+        
     End If
-Next i
+
+    RangeToArray1D = result
+
+End Function
