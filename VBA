@@ -1,29 +1,34 @@
-Function GetChannelIndex(channelArr As Variant, outputArr As Variant) As Variant
+Function ReadGIDHeaderValues(ts As Object) As Object
 
-    Dim i As Long
-    Dim j As Long
-    Dim idx() As Long
-    Dim n As Long
+    Dim dict As Object
+    Dim line As String
+    Dim key As String
+    Dim value As String
+    Dim parts As Variant
 
-    For i = LBound(channelArr) To UBound(channelArr)
+    Set dict = CreateObject("Scripting.Dictionary")
 
-        For j = LBound(outputArr) To UBound(outputArr)
+    Do Until ts.AtEndOfStream
 
-            If channelArr(i) = outputArr(j) Then
+        line = Trim(ts.ReadLine)
 
-                n = n + 1
-                ReDim Preserve idx(1 To n)
+        If InStr(line, "END") > 0 Then Exit Do
 
-                idx(n) = i
+        If InStr(line, "=") > 0 Then
 
-                Exit For
+            parts = Split(line, "=")
 
-            End If
+            key = Trim(parts(0))
+            value = Trim(parts(1))
 
-        Next j
+            value = Replace(value, "'", "")
 
-    Next i
+            dict(key) = value
 
-    GetChannelIndex = idx
+        End If
+
+    Loop
+
+    Set ReadGIDHeaderValues = dict
 
 End Function
