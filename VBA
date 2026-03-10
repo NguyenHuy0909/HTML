@@ -1,29 +1,29 @@
 Function RangeToArray1D(rng As Range) As Variant
 
     Dim data As Variant
-    Dim result() As Variant
-    Dim i As Long
-    
+    Dim arr() As Variant
+    Dim i As Long, j As Long
+    Dim count As Long
+
     data = rng.Value
 
-    If rng.Rows.Count > 1 Then
-    
-        ReDim result(1 To rng.Rows.Count)
-        
-        For i = 1 To rng.Rows.Count
-            result(i) = data(i, 1)
-        Next i
-        
-    Else
-    
-        ReDim result(1 To rng.Columns.Count)
-        
-        For i = 1 To rng.Columns.Count
-            result(i) = data(1, i)
-        Next i
-        
-    End If
+    'Đếm số ô có dữ liệu
+    For i = 1 To rng.Cells.Count
+        If rng.Cells(i).Value <> "" Then
+            count = count + 1
+        End If
+    Next i
 
-    RangeToArray1D = result
+    ReDim arr(1 To count)
+
+    j = 1
+    For i = 1 To rng.Cells.Count
+        If rng.Cells(i).Value <> "" Then
+            arr(j) = rng.Cells(i).Value
+            j = j + 1
+        End If
+    Next i
+
+    RangeToArray1D = arr
 
 End Function
