@@ -1,15 +1,12 @@
-Function GetGIDHeaderArray(filepath As String, headerName As String) As Variant
+Function GetGIDHeaderArray(ts As Object, headerName As String) As Variant
 
-    Dim fso As Object
-    Dim ts As Object
     Dim line As String
     Dim buffer As String
     Dim parts As Variant
     Dim arr() As Variant
     Dim i As Long, n As Long
 
-    Set fso = CreateObject("Scripting.FileSystemObject")
-    Set ts = fso.OpenTextFile(filepath, 1)
+    buffer = ""
 
     Do Until ts.AtEndOfStream
 
@@ -29,8 +26,6 @@ Function GetGIDHeaderArray(filepath As String, headerName As String) As Variant
         End If
 
     Loop
-
-    ts.Close
 
     parts = Split(buffer, "'")
 
