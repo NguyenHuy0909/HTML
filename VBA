@@ -1,30 +1,12 @@
-Function GetChannelIndex(channelArr As Variant, outputArr As Variant) As Variant
+Dim r As Long
+Dim c As Long
 
-    Dim i As Long
-    Dim j As Long
-    Dim idx() As Long
-    Dim n As Long
+For r = 1 To Application.WorksheetFunction.Min(5, UBound(dataArr, 1))
 
-    ReDim idx(1 To UBound(outputArr) - LBound(outputArr) + 1)
-
-    For j = LBound(outputArr) To UBound(outputArr)
+    For c = LBound(dataArr, 2) To UBound(dataArr, 2)
+        Debug.Print dataArr(r, c);
+    Next c
     
-        For i = LBound(channelArr) To UBound(channelArr)
-        
-            If channelArr(i) = outputArr(j) Then
-            
-                n = n + 1
-                idx(n) = i
-                Exit For
-                
-            End If
-            
-        Next i
-        
-    Next j
+    Debug.Print
 
-    ReDim Preserve idx(1 To n)
-
-    GetChannelIndex = idx
-
-End Function
+Next r
