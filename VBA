@@ -1,12 +1,27 @@
-Dim r As Long
-Dim c As Long
+Function RemoveElement(arr As Variant, index As Long) As Variant
 
-For r = 1 To Application.WorksheetFunction.Min(5, UBound(dataArr, 1))
+    Dim i As Long
+    Dim n As Long
+    Dim newArr() As Variant
 
-    For c = LBound(dataArr, 2) To UBound(dataArr, 2)
-        Debug.Print dataArr(r, c);
-    Next c
-    
-    Debug.Print
+    n = UBound(arr) - LBound(arr)
 
-Next r
+    ReDim newArr(LBound(arr) To UBound(arr) - 1)
+
+    For i = LBound(arr) To UBound(arr)
+
+        If i <> index Then
+        
+            If i < index Then
+                newArr(i) = arr(i)
+            Else
+                newArr(i - 1) = arr(i)
+            End If
+            
+        End If
+
+    Next i
+
+    RemoveElement = newArr
+
+End Function
