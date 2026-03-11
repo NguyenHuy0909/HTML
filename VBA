@@ -1,23 +1,23 @@
 Sub Convert_ms()
 
     Dim c As Range
+    Dim lastRow As Long
     Dim rng As Range
     
     Call initWS_data
     
-    'tìm tất cả header "acce"
-    For Each c In ws_data.Rows(4).SpecialCells(xlCellTypeConstants)
+    'tìm tất cả cell chứa "acce"
+    For Each c In ws_data.UsedRange
         
         If LCase(c.Value) = "acce" Then
             
-            'vùng dữ liệu dưới header
-            Set rng = c.Offset(4).Resize(ws_data.Cells(ws_data.Rows.Count, c.Column).End(xlUp).Row - c.Row - 3)
+            lastRow = ws_data.Cells(ws_data.Rows.Count, c.Column).End(xlUp).Row
+            
+            'data nằm dưới header
+            Set rng = ws_data.Range(c.Offset(1), ws_data.Cells(lastRow, c.Column))
             
             'convert mm/s2 -> m/s2
             rng.Value = ws_data.Evaluate(rng.Address & "*0.001")
-            
-            'đổi đơn vị
-            c.Offset(3).Replace "mm/s^2", "m/s^2", xlPart
             
         End If
         
