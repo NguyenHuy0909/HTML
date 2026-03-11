@@ -1,27 +1,26 @@
-Function RemoveElement(arr As Variant, index As Long) As Variant
+Sub Convert_ms()
 
-    Dim i As Long
-    Dim n As Long
-    Dim newArr() As Variant
-
-    n = UBound(arr) - LBound(arr)
-
-    ReDim newArr(LBound(arr) To UBound(arr) - 1)
-
-    For i = LBound(arr) To UBound(arr)
-
-        If i <> index Then
+    Dim c As Range
+    Dim rng As Range
+    
+    Call initWS_data
+    
+    'tìm tất cả header "acce"
+    For Each c In ws_data.Rows(4).SpecialCells(xlCellTypeConstants)
         
-            If i < index Then
-                newArr(i) = arr(i)
-            Else
-                newArr(i - 1) = arr(i)
-            End If
+        If LCase(c.Value) = "acce" Then
+            
+            'vùng dữ liệu dưới header
+            Set rng = c.Offset(4).Resize(ws_data.Cells(ws_data.Rows.Count, c.Column).End(xlUp).Row - c.Row - 3)
+            
+            'convert mm/s2 -> m/s2
+            rng.Value = ws_data.Evaluate(rng.Address & "*0.001")
+            
+            'đổi đơn vị
+            c.Offset(3).Replace "mm/s^2", "m/s^2", xlPart
             
         End If
+        
+    Next c
 
-    Next i
-
-    RemoveElement = newArr
-
-End Function
+End Sub
