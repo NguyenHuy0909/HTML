@@ -1,22 +1,30 @@
-Sub WriteSelectedHeader(ws As Worksheet, _
-                        row_header As Long, _
-                        col_header As Long, _
-                        header_control As Variant, _
-                        headerDict As Object)
+Function GetChannelIndex(channelArr As Variant, outputArr As Variant) As Variant
 
     Dim i As Long
-    Dim key As String
+    Dim j As Long
+    Dim idx() As Long
+    Dim n As Long
 
-    For i = LBound(header_control) To UBound(header_control)
+    ReDim idx(1 To UBound(outputArr) - LBound(outputArr) + 1)
 
-        key = header_control(i)
+    For j = LBound(outputArr) To UBound(outputArr)
+    
+        For i = LBound(channelArr) To UBound(channelArr)
+        
+            If channelArr(i) = outputArr(j) Then
+            
+                n = n + 1
+                idx(n) = i
+                Exit For
+                
+            End If
+            
+        Next i
+        
+    Next j
 
-        ws.Cells(row_header + i, 1) = key
+    ReDim Preserve idx(1 To n)
 
-        If headerDict.Exists(key) Then
-            ws.Cells(row_header + i, col_header) = headerDict(key)
-        End If
+    GetChannelIndex = idx
 
-    Next i
-
-End Sub
+End Function
