@@ -1,26 +1,50 @@
-Sub Convert_ms()
+Public Function GetArrayFromSheet(ByVal groupName As String) As Variant
 
-    Dim c As Range
-    Dim lastRow As Long
-    Dim data_rng As Range
-    
-    Call initWS_data
+    Dim ws As Worksheet
+    Dim lastCol As Long
+    Dim rng As Range, FCell As Range
+    Dim tmpArr As Variant
+    Dim result() As Variant
+    Dim i As Long, n As Long
 
-    For Each c In ws_data.UsedRange
-    
-        If LCase(c.Value) = "acce" Then
-        
-            lastRow = ws_data.Cells(ws_data.Rows.Count, c.Column).End(xlUp).Row
-            
-            'data
-            Set data_rng = ws_data.Range(c.Offset(1), ws_data.Cells(lastRow, c.Column))
-            data_rng.Value = ws_data.Evaluate(data_rng.Address & "*0.001")
-            
-            'unit (hàng ngay dưới header)
-            c.Offset(1).Replace "mm/s^2", "m/s^2", xlPart
-            
+    Set ws = ThisWorkbook.Sheets("Config")
+
+    Set FCell = FoundCellFromSheet(ws, groupName)
+    If FCell Is Nothing Then Exit Function
+
+    lastCol = ws.Cells(FCell.Row, ws.Columns.Count).End(xlToLeft).Column
+    Set rng = ws.Range(ws.Cells(FCell.Row, 4), ws.Cells(FCell.Row, lastCol))
+
+    tmpArr = rng.Value
+
+    ' Nếu chỉ có 1 ô thì rng.Value không phải array
+    If Not IsArray(tmpArr) Then
+        If Len(Trim(tmpArr & "")) > 0 Then
+            ReDim result(1 To 1)
+            result(1) = tmpArr
+            GetArrayFromSheet = result
         End If
-        
-    Next c
+        Exit Function
+    End If
 
-End Sub
+    For i = 1 To UBound(tmpArr, 2)
+        If Len(Trim(tmpArr(1, i) & "")) > 0 Then
+            n = n + 1
+        End If
+    Next i
+
+    If n = 0 Then Exit Function
+
+    ReDim result(1 To n)
+    n = 0
+
+    For i = 1 To UBound(tmpArr, 2)
+        If Len(Trim(tmpArr(1, i) & "")) > 0 Then
+            n = n + 1
+            result(n) = tmpArr(1, i)
+        End If
+    Next i
+
+    GetArrayFromSheet = result
+
+End Function
