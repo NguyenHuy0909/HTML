@@ -1,1 +1,7 @@
-=AGGREGATE(14,6,C7:C200/((B7:B200>=AA191)*(B7:B200<=AB191)),1)
+Dim ws As Worksheet
+
+For Each ws In ThisWorkbook.Worksheets
+    If ws.Name <> "Sheet1" Then
+        ws.Range("A1:D10").Formula = Sheets("Sheet1").Range("A1:D10").Formula
+    End If
+Next ws
