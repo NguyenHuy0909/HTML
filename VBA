@@ -1,7 +1,31 @@
-Dim ws As Worksheet
+Sub ReplaceIndirectWithDirectLink()
 
-For Each ws In ThisWorkbook.Worksheets
-    If ws.Name <> "Sheet1" Then
-        ws.Range("A1:D10").Formula = Sheets("Sheet1").Range("A1:D10").Formula
-    End If
-Next ws
+    Dim c As Range
+    Dim rng As Range
+    Dim addr As String
+    
+    Set rng = Selection
+    
+    Application.ScreenUpdating = False
+    
+    For Each c In rng
+        If c.HasFormula Then
+        
+            If InStr(1, c.Formula, "INDIRECT", vbTextCompare) > 0 Then
+            
+                On Error Resume Next
+                addr = c.DirectPrecedents.Address(External:=True)
+                On Error GoTo 0
+                
+                If addr <> "" Then
+                    c.Formula = "=" & addr
+                End If
+                
+            End If
+            
+        End If
+    Next c
+
+    Application.ScreenUpdating = True
+
+End Sub
