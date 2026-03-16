@@ -1,35 +1,52 @@
-Sub ConvertIndirectInSheet()
+Sub ConvertIndirectToDirectFormula_ActiveSheet()
 
     Dim ws As Worksheet
     Dim c As Range
-    Dim addr As String
+    Dim f As String
+    Dim innerExpr As String
+    Dim realRef As String
+    Dim p1 As Long, p2 As Long
     
     Set ws = ActiveSheet
     
     Application.ScreenUpdating = False
+    Application.Calculation = xlCalculationManual
     
-    For Each c In ws.UsedRange
-    
-        If c.HasFormula Then
+    On Error Resume Next
+    For Each c In ws.UsedRange.SpecialCells(xlCellTypeFormulas)
         
-            If InStr(1, c.Formula, "INDIRECT", vbTextCompare) > 0 Then
+        If InStr(1, c.Formula, "INDIRECT(", vbTextCompare) > 0 Then
             
-                On Error Resume Next
-                addr = c.DirectPrecedents.Address(External:=True)
-                On Error GoTo 0
-                
-                If addr <> "" Then
-                    c.Formula = "=" & addr
-                End If
-                
+            f = c.Formula
+            
+            ' lấy phần nằm trong INDIRECT(...)
+            p1 = InStr(1, f, "INDIRECT(", vbTextCompare)
+            p1 = p1 + Len("INDIRECT(")
+            p2 = Len(f)
+            
+            ' bỏ dấu ) cuối cùng
+            If Right(f, 1) = ")" Then
+                innerExpr = Mid(f, p1, p2 - p1)
+            Else
+                innerExpr = Mid(f, p1)
+            End If
+            
+            ' Evaluate để ra chuỗi tham chiếu thật
+            ' ví dụ: "'[file.xlsm]Sheet1'!C$206"
+            realRef = ws.Evaluate("=" & innerExpr)
+            
+            If Len(realRef) > 0 Then
+                c.Formula = "=" & realRef
             End If
             
         End If
         
     Next c
+    On Error GoTo 0
     
+    Application.Calculation = xlCalculationAutomatic
     Application.ScreenUpdating = True
     
-    MsgBox "Done converting INDIRECT in sheet"
+    MsgBox "Đã chuyển xong INDIRECT -> direct formula trong sheet: " & ws.Name
 
 End Sub
