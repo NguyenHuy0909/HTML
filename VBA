@@ -1,14 +1,15 @@
-Sub ReplaceIndirectWithDirectLink()
+Sub ConvertIndirectInSheet()
 
+    Dim ws As Worksheet
     Dim c As Range
-    Dim rng As Range
     Dim addr As String
     
-    Set rng = Selection
+    Set ws = ActiveSheet
     
     Application.ScreenUpdating = False
     
-    For Each c In rng
+    For Each c In ws.UsedRange
+    
         If c.HasFormula Then
         
             If InStr(1, c.Formula, "INDIRECT", vbTextCompare) > 0 Then
@@ -24,8 +25,11 @@ Sub ReplaceIndirectWithDirectLink()
             End If
             
         End If
+        
     Next c
-
+    
     Application.ScreenUpdating = True
+    
+    MsgBox "Done converting INDIRECT in sheet"
 
 End Sub
