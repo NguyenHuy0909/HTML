@@ -1,52 +1,39 @@
-Sub ConvertIndirectToDirectFormula_ActiveSheet()
+Sub Format_Tables_Slide_1_to_14()
 
-    Dim ws As Worksheet
-    Dim c As Range
-    Dim f As String
-    Dim innerExpr As String
-    Dim realRef As String
-    Dim p1 As Long, p2 As Long
+    Dim sld As Slide
+    Dim shp As Shape
+    Dim tbl As Table
+    Dim r As Long, c As Long
+    Dim i As Long
     
-    Set ws = ActiveSheet
-    
-    Application.ScreenUpdating = False
-    Application.Calculation = xlCalculationManual
-    
-    On Error Resume Next
-    For Each c In ws.UsedRange.SpecialCells(xlCellTypeFormulas)
+    ' Loop từ slide 1 đến 14 (có check tránh out of range)
+    For i = 1 To Application.Min(14, ActivePresentation.Slides.Count)
         
-        If InStr(1, c.Formula, "INDIRECT(", vbTextCompare) > 0 Then
+        Set sld = ActivePresentation.Slides(i)
+        
+        For Each shp In sld.Shapes
             
-            f = c.Formula
-            
-            ' lấy phần nằm trong INDIRECT(...)
-            p1 = InStr(1, f, "INDIRECT(", vbTextCompare)
-            p1 = p1 + Len("INDIRECT(")
-            p2 = Len(f)
-            
-            ' bỏ dấu ) cuối cùng
-            If Right(f, 1) = ")" Then
-                innerExpr = Mid(f, p1, p2 - p1)
-            Else
-                innerExpr = Mid(f, p1)
+            ' Nếu là table
+            If shp.HasTable Then
+                
+                Set tbl = shp.Table
+                
+                ' Format vùng cần thiết
+                For r = 4 To Application.Min(5, tbl.Rows.Count)
+                    For c = 3 To Application.Min(14, tbl.Columns.Count)
+                        
+                        With tbl.Cell(r, c).Shape
+                            .Fill.Visible = msoFalse
+                            .TextFrame.TextRange.Font.Color.RGB = RGB(0, 0, 0)
+                        End With
+                        
+                    Next c
+                Next r
+                
             End If
             
-            ' Evaluate để ra chuỗi tham chiếu thật
-            ' ví dụ: "'[file.xlsm]Sheet1'!C$206"
-            realRef = ws.Evaluate("=" & innerExpr)
-            
-            If Len(realRef) > 0 Then
-                c.Formula = "=" & realRef
-            End If
-            
-        End If
+        Next shp
         
-    Next c
-    On Error GoTo 0
-    
-    Application.Calculation = xlCalculationAutomatic
-    Application.ScreenUpdating = True
-    
-    MsgBox "Đã chuyển xong INDIRECT -> direct formula trong sheet: " & ws.Name
+    Next i
 
 End Sub
