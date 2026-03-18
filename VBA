@@ -1,39 +1,24 @@
-Sub Format_Tables_Slide_1_to_14()
+Sub RemoveRPM_Center_Slides1_14()
 
-    Dim sld As Slide
-    Dim shp As Shape
-    Dim tbl As Table
-    Dim r As Long, c As Long
-    Dim i As Long
+    Dim sld As Slide, shp As Shape, tbl As Table, i As Long
     
-    ' Loop từ slide 1 đến 14 (có check tránh out of range)
     For i = 1 To Application.Min(14, ActivePresentation.Slides.Count)
-        
-        Set sld = ActivePresentation.Slides(i)
-        
-        For Each shp In sld.Shapes
+        For Each shp In ActivePresentation.Slides(i).Shapes
             
-            ' Nếu là table
             If shp.HasTable Then
-                
                 Set tbl = shp.Table
                 
-                ' Format vùng cần thiết
-                For r = 4 To Application.Min(5, tbl.Rows.Count)
-                    For c = 3 To Application.Min(14, tbl.Columns.Count)
-                        
-                        With tbl.Cell(r, c).Shape
-                            .Fill.Visible = msoFalse
-                            .TextFrame.TextRange.Font.Color.RGB = RGB(0, 0, 0)
-                        End With
-                        
-                    Next c
-                Next r
+                If tbl.Rows.Count >= 3 Then
+                    With tbl.Cell(3, 1).Shape.TextFrame
+                        .TextRange.Text = Replace(.TextRange.Text, "rpm", "", , , vbTextCompare)
+                        .TextRange.ParagraphFormat.Alignment = ppAlignCenter
+                        .VerticalAnchor = msoAnchorMiddle
+                    End With
+                End If
                 
             End If
             
         Next shp
-        
     Next i
 
 End Sub
