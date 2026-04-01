@@ -1,34 +1,29 @@
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
-    ' Xóa viền cũ
-    Cells.Borders.LineStyle = xlNone
-    
-    ' Tô viền cho ô được chọn
+    ' Tô viền cho ô được chọn mà không xóa viền cũ
     With Target.Borders(xlEdgeBottom)
         .LineStyle = xlContinuous
-        .ColorIndex = 1 ' Màu đen
-        .TintAndShade = 0
+        .Color = RGB(0, 0, 255) ' Màu xanh dương
         .Weight = xlThin ' Độ dày của viền
     End With
     With Target.Borders(xlEdgeRight)
         .LineStyle = xlContinuous
-        .ColorIndex = 1
-        .TintAndShade = 0
+        .Color = RGB(0, 0, 255) ' Màu xanh dương
         .Weight = xlThin
     End With
     With Target.Borders(xlEdgeLeft)
         .LineStyle = xlContinuous
-        .ColorIndex = 1
-        .TintAndShade = 0
+        .Color = RGB(0, 0, 255) ' Màu xanh dương
         .Weight = xlThin
     End With
     With Target.Borders(xlEdgeTop)
         .LineStyle = xlContinuous
-        .ColorIndex = 1
-        .TintAndShade = 0
+        .Color = RGB(0, 0, 255) ' Màu xanh dương
         .Weight = xlThin
     End With
     
-    ' Highlight toàn bộ hàng và cột
+    ' Highlight toàn bộ hàng và cột với viền đầy đủ mà không xóa viền có sẵn
     Target.EntireRow.Borders(xlEdgeBottom).LineStyle = xlContinuous
+    Target.EntireRow.Borders(xlEdgeTop).LineStyle = xlContinuous
+    Target.EntireColumn.Borders(xlEdgeLeft).LineStyle = xlContinuous
     Target.EntireColumn.Borders(xlEdgeRight).LineStyle = xlContinuous
 End Sub
