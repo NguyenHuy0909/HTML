@@ -1,5 +1,10 @@
 Private Sub Worksheet_SelectionChange(ByVal Target As Range)
-    ' Tô viền cho ô được chọn mà không xóa viền cũ
+    ' Xóa viền cũ của ô trước đó
+    On Error Resume Next ' Đảm bảo không bị lỗi nếu ô trống
+    ActiveCell.Borders.LineStyle = xlNone
+    On Error GoTo 0 ' Hủy bỏ chế độ xử lý lỗi
+    
+    ' Tô viền cho ô mới được chọn
     With Target.Borders(xlEdgeBottom)
         .LineStyle = xlContinuous
         .Color = RGB(0, 0, 255) ' Màu xanh dương
@@ -21,7 +26,7 @@ Private Sub Worksheet_SelectionChange(ByVal Target As Range)
         .Weight = xlThin
     End With
     
-    ' Highlight toàn bộ hàng và cột với viền đầy đủ mà không xóa viền có sẵn
+    ' Highlight toàn bộ hàng và cột của ô được chọn
     Target.EntireRow.Borders(xlEdgeBottom).LineStyle = xlContinuous
     Target.EntireRow.Borders(xlEdgeTop).LineStyle = xlContinuous
     Target.EntireColumn.Borders(xlEdgeLeft).LineStyle = xlContinuous
