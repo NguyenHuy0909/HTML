@@ -1,24 +1,34 @@
-Sub Numbering_All_Cells()
-
-    Dim shp As Shape, tbl As Table
-    Dim r As Long, c As Long
-    Dim n As Long
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    ' Xóa viền cũ
+    Cells.Borders.LineStyle = xlNone
     
-    For Each shp In ActiveWindow.Selection.ShapeRange
-        If shp.HasTable Then
-            Set tbl = shp.Table
-            
-            n = 1
-            For r = 3 To Application.Min(6, tbl.Rows.Count)
-                For c = 3 To Application.Min(14, tbl.Columns.Count)
-                    
-                    tbl.Cell(r, c).Shape.TextFrame.TextRange.Text = n
-                    n = n + 1
-                    
-                Next c
-            Next r
-            
-        End If
-    Next shp
-
+    ' Tô viền cho ô được chọn
+    With Target.Borders(xlEdgeBottom)
+        .LineStyle = xlContinuous
+        .ColorIndex = 1 ' Màu đen
+        .TintAndShade = 0
+        .Weight = xlThin ' Độ dày của viền
+    End With
+    With Target.Borders(xlEdgeRight)
+        .LineStyle = xlContinuous
+        .ColorIndex = 1
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Target.Borders(xlEdgeLeft)
+        .LineStyle = xlContinuous
+        .ColorIndex = 1
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    With Target.Borders(xlEdgeTop)
+        .LineStyle = xlContinuous
+        .ColorIndex = 1
+        .TintAndShade = 0
+        .Weight = xlThin
+    End With
+    
+    ' Highlight toàn bộ hàng và cột
+    Target.EntireRow.Borders(xlEdgeBottom).LineStyle = xlContinuous
+    Target.EntireColumn.Borders(xlEdgeRight).LineStyle = xlContinuous
 End Sub
