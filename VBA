@@ -1,1 +1,1 @@
-=IF(I4>NOW(), TEXT(NETWORKDAYS(NOW(), I4)-1, "0") & " ngày " & TEXT(MOD(I4-NOW(), 1)*24-1, "0") & " giờ", "Deadline Passed")
+=TEXT(NETWORKDAYS(TODAY(), I4)-1,"0") & " ngày " & TEXT(((I4-TODAY())-NETWORKDAYS(TODAY(), I4)+TIME(9,0,0))/TIME(1,0,0), "0") & " giờ"
