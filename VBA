@@ -1,3 +1,9 @@
-=(NETWORKDAYS.INTL(NOW(), I4, 1) - 1) * 8 
-+ (18 - MAX(9, MIN(18, HOUR(NOW()) + MINUTE(NOW())/60)) - IF(HOUR(NOW()) < 12, 1, IF(HOUR(NOW()) < 13, 13 - (HOUR(NOW()) + MINUTE(NOW())/60), 0)))
-+ (MAX(9, MIN(18, HOUR(I4) + MINUTE(I4)/60)) - 9 - IF(HOUR(I4) > 13, 1, IF(HOUR(I4) > 12, (HOUR(I4) + MINUTE(I4)/60) - 12, 0)))
+=LET(
+    TotalHours, (NETWORKDAYS.INTL(NOW(), I4, 1) - 1) * 8 
+    + (18 - MAX(9, MIN(18, HOUR(NOW()) + MINUTE(NOW())/60)) - IF(HOUR(NOW()) < 12, 1, IF(HOUR(NOW()) < 13, 13 - (HOUR(NOW()) + MINUTE(NOW())/60), 0)))
+    + (MAX(9, MIN(18, HOUR(I4) + MINUTE(I4)/60)) - 9 - IF(HOUR(I4) > 13, 1, IF(HOUR(I4) > 12, (HOUR(I4) + MINUTE(I4)/60) - 12, 0))),
+    Days, INT(TotalHours/8),
+    Hours, INT(MOD(TotalHours, 8)),
+    Minutes, ROUND(MOD(TotalHours*60, 60), 0),
+    Days & " ngày, " & Hours & " giờ, " & Minutes & " phút"
+)
