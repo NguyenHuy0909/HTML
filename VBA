@@ -1,1 +1,1 @@
-=NETWORKDAYS(TODAY(), B2) & " ngày " & TEXT(IF(TODAY() = B2, 18 - HOUR(NOW()) - MINUTE(NOW())/60 + 9, NETWORKDAYS(TODAY(), B2)*8), "0") & " giờ"
+=NETWORKDAYS(TODAY(), B2) & " ngày " & TEXT(NETWORKDAYS(TODAY(), B2)*8 - (HOUR(NOW()) - 9 + MINUTE(NOW())/60), "0") & " giờ"
