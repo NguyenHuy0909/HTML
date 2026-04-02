@@ -1,1 +1,1 @@
-=IF(A1>NOW(),TEXT(NETWORKDAYS(NOW(), A1)-1,"0")&" days "&TEXT(MOD(A1-NOW(),1)*24,"0")&" hours", "Deadline Passed")
+=IF(A1>NOW(), TEXT(NETWORKDAYS(NOW(), A1)-1, "0") & " ngày " & TEXT(MOD(A1-NOW(), 1)*24-1, "0") & " giờ", "Hạn chót đã qua")
