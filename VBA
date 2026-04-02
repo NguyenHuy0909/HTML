@@ -1,16 +1,1 @@
-Dim previousCell As Range
-
-Private Sub Worksheet_SelectionChange(ByVal Target As Range)
-    ' Hủy bỏ highlight trước đó
-    If Not previousCell Is Nothing Then
-        previousCell.EntireRow.Interior.ColorIndex = -4142
-        previousCell.EntireColumn.Interior.ColorIndex = -4142
-    End If
-
-    ' Highlight hàng và cột của cell được chọn
-    Target.EntireRow.Interior.Color = RGB(255, 255, 0) ' Màu vàng cho hàng
-    Target.EntireColumn.Interior.Color = RGB(255, 255, 0) ' Màu vàng cho cột
-
-    ' Lưu lại cell hiện tại để làm mốc cho lần sau
-    Set previousCell = Target
-End Sub
+=NETWORKDAYS(TODAY(), B2) & " ngày " & TEXT(IF(TODAY() = B2, 18 - HOUR(NOW()) - MINUTE(NOW())/60 + 9, NETWORKDAYS(TODAY(), B2)*8), "0") & " giờ"
