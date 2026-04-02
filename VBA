@@ -1,1 +1,3 @@
-=TEXT(NETWORKDAYS(TODAY(), I4)-1,"0") & " ngày " & TEXT(((I4-TODAY())-NETWORKDAYS(TODAY(), I4)+TIME(9,0,0))/TIME(1,0,0), "0") & " giờ"
+=(NETWORKDAYS.INTL(NOW(), I4, 1) - 1) * 8 
++ (18 - MAX(9, MIN(18, HOUR(NOW()) + MINUTE(NOW())/60)) - IF(HOUR(NOW()) < 12, 1, IF(HOUR(NOW()) < 13, 13 - (HOUR(NOW()) + MINUTE(NOW())/60), 0)))
++ (MAX(9, MIN(18, HOUR(I4) + MINUTE(I4)/60)) - 9 - IF(HOUR(I4) > 13, 1, IF(HOUR(I4) > 12, (HOUR(I4) + MINUTE(I4)/60) - 12, 0)))
