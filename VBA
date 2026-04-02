@@ -1,1 +1,1 @@
-=NETWORKDAYS(TODAY(), I4) & " days " & TEXT(MOD(IF(TODAY() = I4, 18 - HOUR(NOW()) - MINUTE(NOW())/60 + 9, NETWORKDAYS(TODAY(), I4)*8), 24), "0") & " hours"
+=IF(A1>NOW(),TEXT(NETWORKDAYS(NOW(), A1)-1,"0")&" days "&TEXT(MOD(A1-NOW(),1)*24,"0")&" hours", "Deadline Passed")
