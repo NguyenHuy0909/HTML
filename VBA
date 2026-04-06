@@ -1,1 +1,9 @@
-=IF(B2>=NOW(), (NETWORKDAYS(TODAY()+1,B2)-1)&" days "&TEXT(MAX(0,8-(NOW()-(TODAY()+9/24))*24),"0.0")&" hours", "-"&(NETWORKDAYS(B2,TODAY()-1))&" days "&TEXT(MAX(0,(NOW()-(TODAY()+9/24))*24-8+(18-9-1)),"0.0")&" hours")
+Dear team,
+
+As you may already know, I previously created an Excel file to make the calculation and customization of the series easier. In addition, I have updated the formula headings so that they better align with the standard.
+
+The file is now complete, and I have named it FFT_v2.0 (Version 2.0).
+
+I would like to share this file with everyone. If you use it, I would greatly appreciate any feedback or suggestions so that I can continue improving it.
+
+Thank you, everyone.
