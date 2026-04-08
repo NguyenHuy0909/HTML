@@ -1,9 +1,30 @@
-Dear team,
+Sub Test_OneCell_DataBar()
 
-As you may already know, I previously created an Excel file to make the calculation and customization of the series easier. In addition, I have updated the formula headings so that they better align with the standard.
+    Dim ws As Worksheet
+    Dim fc As FormatCondition
+    
+    Set ws = ActiveSheet
+    
+    'Xóa CF cũ của ô P3
+    ws.Range("P3").FormatConditions.Delete
+    
+    'Tạo Data Bar mới cho đúng 1 ô
+    Set fc = ws.Range("P3").FormatConditions.AddDatabar
+    
+    With fc
+        .ShowValue = False
+        
+        .MinPoint.Modify newtype:=xlConditionValueFormula, newvalue:="=N3"
+        .MaxPoint.Modify newtype:=xlConditionValueFormula, newvalue:="=O3"
+        
+        .BarColor.Color = RGB(0, 176, 240)
+        
+        On Error Resume Next
+        .BarFillType = xlDataBarFillSolid
+        .BarBorder.Type = xlDataBarBorderNone
+        On Error GoTo 0
+        
+        .Direction = xlContext
+    End With
 
-The file is now complete, and I have named it FFT_v2.0 (Version 2.0).
-
-I would like to share this file with everyone. If you use it, I would greatly appreciate any feedback or suggestions so that I can continue improving it.
-
-Thank you, everyone.
+End Sub
