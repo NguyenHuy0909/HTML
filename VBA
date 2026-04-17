@@ -1,1 +1,8 @@
-In addition, I identified that the virtual oil weight was not correctly set for the ENG models of Spec 2 and Spec 3. Therefore, I would like to resend the ERP result files after re-running the analysis.
+Function NextEmptyCol(ws As Worksheet, startCol As Long, dataRow As Long) As Long
+    Dim col As Long
+    col = startCol
+    Do While ws.Cells(dataRow, col).Value <> ""
+        col = col + 1
+    Loop
+    NextEmptyCol = col
+End Function
