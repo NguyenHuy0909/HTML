@@ -1,8 +1,37 @@
-Function NextEmptyCol(ws As Worksheet, startCol As Long, dataRow As Long) As Long
-    Dim col As Long
-    col = startCol
-    Do While ws.Cells(dataRow, col).Value <> ""
-        col = col + 1
-    Loop
-    NextEmptyCol = col
-End Function
+Public Sub BrowseOutputFolders()
+
+    Dim fd As FileDialog
+    Dim wsConfig As Worksheet
+    Dim markerCell As Range
+    Dim targetCell As Range
+    Dim selectedPath As String
+
+    Set wsConfig = ThisWorkbook.Worksheets(1)
+    Set markerCell = FindLabelCell(wsConfig, "#OUTPUT DIRECTORY")
+
+    If markerCell Is Nothing Then
+        MsgBox """#OUTPUT DIRECTORY"" was not found.", vbExclamation
+        Exit Sub
+    End If
+
+    Set targetCell = markerCell.Offset(0, 1)
+    Set fd = Application.FileDialog(msoFileDialogFolderPicker)
+
+    With fd
+        .Title = "Select Output Folder"
+        .AllowMultiSelect = False
+
+        If .Show <> -1 Then GoTo CleanUp
+
+        selectedPath = .SelectedItems(1)
+    End With
+
+    targetCell.Value = selectedPath
+
+CleanUp:
+    Set fd = Nothing
+    Set targetCell = Nothing
+    Set markerCell = Nothing
+    Set wsConfig = Nothing
+
+End Sub
