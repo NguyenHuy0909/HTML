@@ -1,37 +1,62 @@
-Public Sub BrowseOutputFolders()
+Option Explicit
 
-    Dim fd As FileDialog
-    Dim wsConfig As Worksheet
-    Dim markerCell As Range
-    Dim targetCell As Range
-    Dim selectedPath As String
+Private copiedLeft As Single
+Private copiedTop As Single
+Private hasCopiedPosition As Boolean
 
-    Set wsConfig = ThisWorkbook.Worksheets(1)
-    Set markerCell = FindLabelCell(wsConfig, "#OUTPUT DIRECTORY")
+Public Sub copy()
+    Dim sourceShape As Shape
 
-    If markerCell Is Nothing Then
-        MsgBox """#OUTPUT DIRECTORY"" was not found.", vbExclamation
+    If Not TryGetFirstSelectedShape(sourceShape) Then
+        MsgBox "Please select at least one shape before running copy().", vbExclamation, "Copy Shape Position"
         Exit Sub
     End If
 
-    Set targetCell = markerCell.Offset(0, 1)
-    Set fd = Application.FileDialog(msoFileDialogFolderPicker)
+    copiedLeft = sourceShape.Left
+    copiedTop = sourceShape.Top
+    hasCopiedPosition = True
 
-    With fd
-        .Title = "Select Output Folder"
-        .AllowMultiSelect = False
-
-        If .Show <> -1 Then GoTo CleanUp
-
-        selectedPath = .SelectedItems(1)
-    End With
-
-    targetCell.Value = selectedPath
-
-CleanUp:
-    Set fd = Nothing
-    Set targetCell = Nothing
-    Set markerCell = Nothing
-    Set wsConfig = Nothing
-
+    'MsgBox "Copied position: Left = " & Format(copiedLeft, "0.00") & _
+           ", Top = " & Format(copiedTop, "0.00"), _
+           vbInformation, "Copy Shape Position"
 End Sub
+
+Public Sub paste()
+    Dim targetShape As Shape
+
+    If Not hasCopiedPosition Then
+        MsgBox "Please run copy() before running paste().", vbExclamation, "Paste Shape Position"
+        Exit Sub
+    End If
+
+    If Not TryGetFirstSelectedShape(targetShape) Then
+        MsgBox "Please select at least one shape before running paste().", vbExclamation, "Paste Shape Position"
+        Exit Sub
+    End If
+
+    targetShape.Left = copiedLeft
+    targetShape.Top = copiedTop
+
+    'MsgBox "Pasted position: Left = " & Format(copiedLeft, "0.00") & _
+           ", Top = " & Format(copiedTop, "0.00"), _
+           vbInformation, "Paste Shape Position"
+End Sub
+
+Private Function TryGetFirstSelectedShape(ByRef selectedShape As Shape) As Boolean
+    On Error GoTo NoShapeSelected
+
+    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
+        GoTo NoShapeSelected
+    End If
+
+    If ActiveWindow.Selection.ShapeRange.Count < 1 Then
+        GoTo NoShapeSelected
+    End If
+
+    Set selectedShape = ActiveWindow.Selection.ShapeRange(1)
+    TryGetFirstSelectedShape = True
+    Exit Function
+
+NoShapeSelected:
+    TryGetFirstSelectedShape = False
+End Function
