@@ -1,15 +1,426 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
-  <ribbon>
-    <tabs>
-      <tab id="tabMyTool" label="My Tool">
-        <group id="grpTOC" label="TOC Tools">
-          <button id="btnUpdateTOC"
-                  label="Update TOC"
-                  size="large"
-                  onAction="UpdateTOCRibbon" />
-        </group>
-      </tab>
-    </tabs>
-  </ribbon>
-</customUI>
+Option Explicit
+
+'===============================================================================
+' MODULE: ModTOCUpdate
+' PURPOSE: Auto-regenerate the Table of Contents in a PowerPoint presentation.
+'
+' HOW TO RUN:
+'   A) Via ribbon: click "Update TOC" button in the "TOC Tools" tab.
+'   B) Via macro:  Alt+F8 -> UpdateTOC -> Run.
+'
+' In both cases, SELECT the TOC textbox in PowerPoint before running.
+'
+' ENTRY POINTS:
+'   UpdateTOCRibbon(control)  -- called by the ribbon button (IRibbonControl)
+'   UpdateTOC()               -- main logic, also callable from Alt+F8
+'===============================================================================
+
+'-------------------------------------------------------------------------------
+' UpdateTOCRibbon -- Ribbon callback
+' Called automatically when the "Update TOC" button is clicked in the ribbon.
+' Simply delegates to UpdateTOC().
+'-------------------------------------------------------------------------------
+Public Sub UpdateTOCRibbon(control As IRibbonControl)
+    UpdateTOC
+End Sub
+
+'-------------------------------------------------------------------------------
+' UpdateTOC -- Main procedure
+'
+' WORKFLOW:
+'   Step 0 : Read the currently selected shape --> use as TOC output textbox
+'   Step 1 : Determine which slide the TOC is on --> scan all slides AFTER it
+'   Phase 1: Preserve old parent titles and tab-alignment template from old TOC
+'   Phase 2: Scan content slides --> collect (key, title, first page, last page)
+'   Phase 3: Build formatted TOC lines (auto-insert parent headers, indent subs)
+'   Phase 4: Write new TOC into textbox and save
+'
+' KEY CONCEPTS:
+'   Section key   - numeric ID from header, e.g. "5.3" or "4"
+'   Grouping      - consecutive slides with same (key AND title) = one TOC entry
+'                   same key but different title = SEPARATE entries
+'   Parent line   - auto-generated for sub-sections ("5.3" -> parent "5.")
+'                   parent lines have NO page reference
+'   Indentation   - sub-section lines get two leading ideographic spaces
+'   Idempotency   - running this macro twice produces identical output
+'-------------------------------------------------------------------------------
+Public Sub UpdateTOC()
+    Dim pres As Presentation
+    Set pres = ActivePresentation
+
+    ' ==========================================================================
+    ' STEP 0: GET THE SELECTED SHAPE AS TOC TARGET
+    ' The user must click the TOC textbox before running this macro.
+    ' ==========================================================================
+    Dim sel As Selection
+    Set sel = pres.Windows(1).Selection
+
+    If sel.Type <> ppSelectionShapes Then
+        MsgBox "Please SELECT the TOC textbox first, then run UpdateTOC again."
+        Exit Sub
+    End If
+
+    Dim tocBox As Shape
+    Set tocBox = sel.ShapeRange(1)
+
+    If Not tocBox.HasTextFrame Then
+        MsgBox "Selected shape has no text frame. Please select a textbox."
+        Exit Sub
+    End If
+
+    ' ==========================================================================
+    ' STEP 1: FIND WHICH SLIDE THE TOC IS ON
+    ' All slides AFTER the TOC slide are scanned for headers.
+    ' ==========================================================================
+    Dim tocSlide As Slide
+    Set tocSlide = tocBox.Parent
+    Dim tocSlideIdx As Long
+    tocSlideIdx = tocSlide.SlideIndex
+
+    If tocSlideIdx >= pres.Slides.Count Then
+        MsgBox "No slides found after the TOC slide. Nothing to scan."
+        Exit Sub
+    End If
+
+    ' ==========================================================================
+    ' PHASE 1: PRESERVE OLD TOC INFORMATION
+    ' (a) Tab template -- read from the FIRST arrow-bearing line in old TOC.
+    '     All lines reuse this pattern so arrows align to the same column.
+    ' (b) Parent section titles -- reused so custom titles survive rebuild.
+    ' ==========================================================================
+    Dim tabTpl As String
+    tabTpl = GetTabTemplate(tocBox.TextFrame.TextRange)
+
+    Dim oldPKeys(50) As String
+    Dim oldPTitles(50) As String
+    Dim oldPCount As Long
+    oldPCount = 0
+    ReadOldParents tocBox, oldPKeys, oldPTitles, oldPCount
+
+    ' ==========================================================================
+    ' PHASE 2: SCAN CONTENT SLIDES AND BUILD SECTION DATABASE
+    ' Grouping rule: same (key AND title) on consecutive slides = one entry.
+    ' Same key but different title = separate TOC entry.
+    ' ==========================================================================
+    Dim sKeys(200) As String
+    Dim sTitles(200) As String
+    Dim sFirst(200) As Long
+    Dim sLast(200) As Long
+    Dim sCount As Long
+    sCount = 0
+
+    Dim i As Long
+    For i = tocSlideIdx + 1 To pres.Slides.Count
+        Dim hdr As String
+        hdr = GetHeader(pres.Slides(i))
+        If Len(hdr) = 0 Then GoTo NextSlide
+
+        Dim sk As String
+        sk = ParseSectionKey(hdr)
+        If Len(sk) = 0 Then GoTo NextSlide
+
+        Dim st As String
+        st = ExtractTitle(hdr, sk)
+
+        Dim fnd As Boolean
+        fnd = False
+        Dim k As Long
+        For k = 1 To sCount
+            If sKeys(k) = sk And sTitles(k) = st Then
+                sLast(k) = i
+                fnd = True
+                Exit For
+            End If
+        Next k
+
+        If Not fnd Then
+            sCount = sCount + 1
+            sKeys(sCount) = sk
+            sTitles(sCount) = st
+            sFirst(sCount) = i
+            sLast(sCount) = i
+        End If
+NextSlide:
+    Next i
+
+    ' ==========================================================================
+    ' PHASE 3: BUILD TOC LINES
+    ' Case A (key has dot, e.g. "5.3"): emit parent header once, then indented line
+    ' Case B (key no dot, e.g. "5")  : emit top-level line with page reference
+    ' ==========================================================================
+    Dim tocLines(200) As String
+    Dim tocIsSub(200) As Boolean
+    Dim lnCount As Long
+    lnCount = 0
+
+    Dim emitP(50) As String
+    Dim emitPCnt As Long
+    emitPCnt = 0
+
+    Dim pw As String
+    pw = ChrW(12506) & ChrW(12540) & ChrW(12472)  ' page (Japanese)
+    Dim aw As String
+    aw = ChrW(8594)    ' right arrow
+    Dim isp As String
+    isp = ChrW(12288)  ' ideographic space (full-width, used for indentation)
+
+    For k = 1 To sCount
+        Dim dotP As Long
+        dotP = InStr(sKeys(k), ".")
+
+        If dotP > 0 Then
+            ' -- CASE A: sub-section (e.g. "5.3") --------------------------------
+            Dim pKey As String
+            pKey = Left(sKeys(k), dotP - 1)
+
+            ' Emit parent header once ("5. Title" -- no page reference)
+            If Not IsEmitted(pKey, emitP, emitPCnt) Then
+                Dim pTitle As String
+                pTitle = LookupOldParent(pKey, oldPKeys, oldPTitles, oldPCount)
+                lnCount = lnCount + 1
+                tocIsSub(lnCount) = False
+                If Len(pTitle) > 0 Then
+                    tocLines(lnCount) = pKey & "." & isp & pTitle
+                Else
+                    tocLines(lnCount) = pKey & "."
+                End If
+                emitPCnt = emitPCnt + 1
+                emitP(emitPCnt) = pKey
+            End If
+
+            ' Emit indented sub-section line with page reference
+            lnCount = lnCount + 1
+            tocIsSub(lnCount) = True
+            tocLines(lnCount) = isp & isp & sKeys(k) & isp & sTitles(k) & _
+                tabTpl & aw & " " & pw & " " & PageNumStr(sFirst(k), sLast(k))
+
+        Else
+            ' -- CASE B: top-level section (e.g. "5") ----------------------------
+            If HasSubSections(sKeys(k), sKeys, sCount) Then
+                If Not IsEmitted(sKeys(k), emitP, emitPCnt) Then
+                    emitPCnt = emitPCnt + 1
+                    emitP(emitPCnt) = sKeys(k)
+                End If
+            End If
+            lnCount = lnCount + 1
+            tocIsSub(lnCount) = False
+            tocLines(lnCount) = sKeys(k) & "." & isp & sTitles(k) & _
+                tabTpl & aw & " " & pw & " " & PageNumStr(sFirst(k), sLast(k))
+        End If
+    Next k
+
+    ' ==========================================================================
+    ' PHASE 4: WRITE TOC INTO TEXTBOX AND SAVE
+    ' Chr(13) = paragraph separator in PowerPoint TextRange.
+    ' Indentation uses leading ideographic spaces (ParagraphFormat.LeftIndent
+    ' does not exist in PowerPoint VBA -- Word-only property).
+    ' ==========================================================================
+    Dim tocText As String
+    tocText = ""
+    For k = 1 To lnCount
+        If k > 1 Then tocText = tocText & Chr(13)
+        tocText = tocText & tocLines(k)
+    Next k
+
+    tocBox.TextFrame.TextRange.Text = tocText
+    pres.Save
+
+    MsgBox "TOC updated! (" & lnCount & " lines written)"
+End Sub
+
+'===============================================================================
+' HELPER FUNCTIONS
+'===============================================================================
+
+' GetHeader -- returns text of shape named "header" on the slide, or "".
+' Header text format expected: "5.3. Section Title"
+Private Function GetHeader(sld As Slide) As String
+    Dim shp As Shape
+    For Each shp In sld.Shapes
+        If shp.Name = "header" Then
+            If shp.HasTextFrame Then
+                GetHeader = Trim(shp.TextFrame.TextRange.Text)
+                Exit Function
+            End If
+        End If
+    Next shp
+End Function
+
+' ParseSectionKey -- extracts numeric key from header string.
+'   "5.3. Title" -> "5.3"    "4. Intro" -> "4"
+'   "5.3.1 Deep" -> "5.3"    (max 2 levels by design)
+'   "No number"  -> ""
+Private Function ParseSectionKey(s As String) As String
+    Dim result As String
+    result = ""
+    Dim inSub As Boolean
+    inSub = False
+
+    Dim i As Long, startPos As Long
+    startPos = 1
+    Do While startPos <= Len(s)
+        Dim cp As Long
+        cp = AscW(Mid(s, startPos, 1))
+        If cp = 32 Or cp = 9 Or cp = 12288 Then
+            startPos = startPos + 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    Dim c As String
+    For i = startPos To Len(s)
+        c = Mid(s, i, 1)
+        If c >= "0" And c <= "9" Then
+            result = result & c
+        ElseIf c = "." Then
+            If inSub Or Len(result) = 0 Then Exit For
+            If i < Len(s) Then
+                If Mid(s, i + 1, 1) >= "0" And Mid(s, i + 1, 1) <= "9" Then
+                    result = result & "."
+                    inSub = True
+                Else
+                    Exit For
+                End If
+            Else
+                Exit For
+            End If
+        Else
+            Exit For
+        End If
+    Next i
+
+    ParseSectionKey = result
+End Function
+
+' ExtractTitle -- returns title text after the section key.
+' Strips leading separators (dot, space, JP period) and trailing CR/LF/VT.
+' PowerPoint TextRange.Text appends Chr(13) to each paragraph -- must be removed.
+Private Function ExtractTitle(header As String, key As String) As String
+    Dim pos As Long
+    pos = Len(key) + 1
+
+    Do While pos <= Len(header)
+        Dim cp As Long
+        cp = AscW(Mid(header, pos, 1))
+        If cp = 46 Or cp = 32 Or cp = 12288 Or cp = 12290 Then
+            pos = pos + 1
+        Else
+            Exit Do
+        End If
+    Loop
+
+    Dim result As String
+    result = Mid(header, pos)
+
+    Do While Len(result) > 0
+        Dim lc As Long
+        lc = AscW(Right(result, 1))
+        If lc = 13 Or lc = 10 Or lc = 11 Then
+            result = Left(result, Len(result) - 1)
+        Else
+            Exit Do
+        End If
+    Loop
+
+    ExtractTitle = result
+End Function
+
+' PageNumStr -- formats page range: "5" or "12~15"
+Private Function PageNumStr(firstPage As Long, lastPage As Long) As String
+    If lastPage > firstPage Then
+        PageNumStr = CStr(firstPage) & ChrW(65374) & CStr(lastPage)
+    Else
+        PageNumStr = CStr(firstPage)
+    End If
+End Function
+
+' GetTabTemplate -- reads the tab characters between title and arrow from
+' the FIRST arrow-bearing line in the existing TOC. This preserves the
+' user's column alignment across regenerations.
+' Fallback: single Tab (relies on shape's existing tab stops).
+Private Function GetTabTemplate(tr As TextRange) As String
+    Dim pw As String
+    pw = ChrW(12506) & ChrW(12540) & ChrW(12472)
+
+    Dim p As Long
+    For p = 1 To tr.Paragraphs.Count
+        Dim pt As String
+        pt = tr.Paragraphs(p).Text
+        If InStr(pt, pw) > 0 Then
+            Dim arrowP As Long
+            arrowP = InStr(pt, ChrW(8594))
+            Dim tabS As Long
+            tabS = InStr(pt, Chr(9))
+            If tabS > 0 And arrowP > tabS Then
+                GetTabTemplate = Mid(pt, tabS, arrowP - tabS)
+                Exit Function
+            End If
+        End If
+    Next p
+
+    GetTabTemplate = Chr(9)
+End Function
+
+' ReadOldParents -- reads parent-only lines from existing TOC for title reuse.
+' Parent line = no page marker AND no dot in key (e.g. "4. Introduction").
+Private Sub ReadOldParents(tocBox As Shape, keys() As String, titles() As String, cnt As Long)
+    Dim tr As TextRange
+    Set tr = tocBox.TextFrame.TextRange
+    Dim pw As String
+    pw = ChrW(12506) & ChrW(12540) & ChrW(12472)
+
+    Dim p As Long
+    For p = 1 To tr.Paragraphs.Count
+        Dim pt As String
+        pt = tr.Paragraphs(p).Text
+        If InStr(pt, pw) > 0 Then GoTo NextOld
+        Dim key As String
+        key = ParseSectionKey(pt)
+        If Len(key) = 0 Then GoTo NextOld
+        If InStr(key, ".") > 0 Then GoTo NextOld
+        cnt = cnt + 1
+        keys(cnt) = key
+        titles(cnt) = ExtractTitle(pt, key)
+NextOld:
+    Next p
+End Sub
+
+' LookupOldParent -- returns saved title for a parent key, or "".
+Private Function LookupOldParent(pKey As String, keys() As String, titles() As String, cnt As Long) As String
+    Dim i As Long
+    For i = 1 To cnt
+        If keys(i) = pKey Then
+            LookupOldParent = titles(i)
+            Exit Function
+        End If
+    Next i
+    LookupOldParent = ""
+End Function
+
+' IsEmitted -- returns True if key is already in the emitted-parents list.
+Private Function IsEmitted(key As String, arr() As String, cnt As Long) As Boolean
+    Dim i As Long
+    For i = 1 To cnt
+        If arr(i) = key Then
+            IsEmitted = True
+            Exit Function
+        End If
+    Next i
+    IsEmitted = False
+End Function
+
+' HasSubSections -- returns True if any sKeys entry starts with "key."
+Private Function HasSubSections(key As String, sKeys() As String, sCount As Long) As Boolean
+    Dim prefix As String
+    prefix = key & "."
+    Dim j As Long
+    For j = 1 To sCount
+        If Left(sKeys(j), Len(prefix)) = prefix Then
+            HasSubSections = True
+            Exit Function
+        End If
+    Next j
+    HasSubSections = False
+End Function
+
