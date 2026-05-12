@@ -1,3 +1,15 @@
-<Relationship Id="rIdCustomUI"
-              Type="http://schemas.microsoft.com/office/2007/relationships/ui/extensibility"
-              Target="customUI/customUI14.xml"/>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
+  <ribbon>
+    <tabs>
+      <tab id="tabMyTool" label="My Tool">
+        <group id="grpTOC" label="TOC Tools">
+          <button id="btnUpdateTOC"
+                  label="Update TOC"
+                  size="large"
+                  onAction="UpdateTOCRibbon" />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
