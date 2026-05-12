@@ -1,62 +1,18 @@
-Option Explicit
-
-Private copiedLeft As Single
-Private copiedTop As Single
-Private hasCopiedPosition As Boolean
-
-Public Sub copy()
-    Dim sourceShape As Shape
-
-    If Not TryGetFirstSelectedShape(sourceShape) Then
-        MsgBox "Please select at least one shape before running copy().", vbExclamation, "Copy Shape Position"
-        Exit Sub
-    End If
-
-    copiedLeft = sourceShape.Left
-    copiedTop = sourceShape.Top
-    hasCopiedPosition = True
-
-    'MsgBox "Copied position: Left = " & Format(copiedLeft, "0.00") & _
-           ", Top = " & Format(copiedTop, "0.00"), _
-           vbInformation, "Copy Shape Position"
-End Sub
-
-Public Sub paste()
-    Dim targetShape As Shape
-
-    If Not hasCopiedPosition Then
-        MsgBox "Please run copy() before running paste().", vbExclamation, "Paste Shape Position"
-        Exit Sub
-    End If
-
-    If Not TryGetFirstSelectedShape(targetShape) Then
-        MsgBox "Please select at least one shape before running paste().", vbExclamation, "Paste Shape Position"
-        Exit Sub
-    End If
-
-    targetShape.Left = copiedLeft
-    targetShape.Top = copiedTop
-
-    'MsgBox "Pasted position: Left = " & Format(copiedLeft, "0.00") & _
-           ", Top = " & Format(copiedTop, "0.00"), _
-           vbInformation, "Paste Shape Position"
-End Sub
-
-Private Function TryGetFirstSelectedShape(ByRef selectedShape As Shape) As Boolean
-    On Error GoTo NoShapeSelected
-
-    If ActiveWindow.Selection.Type <> ppSelectionShapes Then
-        GoTo NoShapeSelected
-    End If
-
-    If ActiveWindow.Selection.ShapeRange.Count < 1 Then
-        GoTo NoShapeSelected
-    End If
-
-    Set selectedShape = ActiveWindow.Selection.ShapeRange(1)
-    TryGetFirstSelectedShape = True
-    Exit Function
-
-NoShapeSelected:
-    TryGetFirstSelectedShape = False
-End Function
+<?xml version="1.0" encoding="UTF-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
+  <ribbon>
+    <tabs>
+      <tab id="tabTOCTools" label="TOC Tools" insertAfterMso="TabDeveloper">
+        <group id="grpTOCUpdate" label="Table of Contents">
+          <button id="btnUpdateTOC"
+                  label="Update TOC"
+                  imageMso="TableOfContentsUpdate"
+                  size="large"
+                  onAction="UpdateTOCRibbon"
+                  screentip="Update Table of Contents"
+                  supertip="Select the TOC textbox first, then click." />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
