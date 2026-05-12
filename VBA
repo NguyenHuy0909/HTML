@@ -1,33 +1,13 @@
-' --- Add hyperlinks: each "ページ XX" links to that slide ---
-Dim p As Long
-For p = 1 To tocBox.TextFrame.TextRange.Paragraphs.Count
-    Dim pText As String
-    pText = tocBox.TextFrame.TextRange.Paragraphs(p).Text
-    Dim pwPos As Long
-    pwPos = InStr(pText, pw)
-    If pwPos > 0 Then
-        ' Extract page number (first number after "ページ ")
-        Dim numStr As String
-        numStr = ""
-        Dim c As Long
-        For c = pwPos + 4 To Len(pText)
-            Dim ch As String
-            ch = Mid(pText, c, 1)
-            If ch >= "0" And ch <= "9" Then
-                numStr = numStr & ch
-            ElseIf Len(numStr) > 0 Then
-                Exit For
-            End If
-        Next c
-        If Len(numStr) > 0 Then
-            Dim slideIdx As Long
-            slideIdx = CLng(numStr)
-            If slideIdx >= 1 And slideIdx <= pres.Slides.Count Then
+                Dim para As TextRange
+                Set para = tocBox.TextFrame.TextRange.Paragraphs(p)
+                ' Select only from "ページ" to end of page number/range
+                Dim linkLen As Long
+                linkLen = Len(pText) - pwPos + 1
+                ' Strip trailing CR if present
+                If Right(Mid(pText, pwPos, linkLen), 1) = Chr(13) Then
+                    linkLen = linkLen - 1
+                End If
                 Dim rng As TextRange
-                Set rng = tocBox.TextFrame.TextRange.Paragraphs(p)
+                Set rng = para.Characters(pwPos, linkLen)
                 rng.ActionSettings(ppMouseClick).Hyperlink.SubAddress = _
                     pres.Slides(slideIdx).SlideID & "," & slideIdx & ","
-            End If
-        End If
-    End If
-Next p
