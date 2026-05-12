@@ -1,0 +1,336 @@
+Option Explicit
+
+Public Sub UpdateTOC()
+    Dim pres As Presentation
+    Set pres = ActivePresentation
+
+    If pres.Slides.Count < 3 Then Exit Sub
+
+    Dim tocBox As Shape
+    Set tocBox = FindTOCBox(pres.Slides(2))
+    If tocBox Is Nothing Then
+        MsgBox "TOC textbox not found on slide 2"
+        Exit Sub
+    End If
+
+    ' â”€â”€ Save old info before rewriting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    Dim tabTpl As String
+    tabTpl = GetTabTemplate(tocBox.TextFrame.TextRange)
+
+    Dim oldPKeys(50) As String
+    Dim oldPTitles(50) As String
+    Dim oldPCount As Long
+    oldPCount = 0
+    ReadOldParents tocBox, oldPKeys, oldPTitles, oldPCount
+
+    ' â”€â”€ Scan slides 3+ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    Dim sKeys(200) As String
+    Dim sTitles(200) As String
+    Dim sFirst(200) As Long
+    Dim sLast(200) As Long
+    Dim sCount As Long
+    sCount = 0
+
+    Dim i As Long
+    For i = 3 To pres.Slides.Count
+        Dim hdr As String
+        hdr = GetHeader(pres.Slides(i))
+        If Len(hdr) = 0 Then GoTo NextSlide
+
+        Dim sk As String
+        sk = ParseSectionKey(hdr)
+        If Len(sk) = 0 Then GoTo NextSlide
+
+        Dim st As String
+        st = ExtractTitle(hdr, sk)
+
+        Dim fnd As Boolean
+        fnd = False
+        Dim k As Long
+        For k = 1 To sCount
+            If sKeys(k) = sk And sTitles(k) = st Then
+                sLast(k) = i
+                fnd = True
+                Exit For
+            End If
+        Next k
+
+        If Not fnd Then
+            sCount = sCount + 1
+            sKeys(sCount) = sk
+            sTitles(sCount) = st
+            sFirst(sCount) = i
+            sLast(sCount) = i
+        End If
+NextSlide:
+    Next i
+
+    ' â”€â”€ Build TOC lines in page order â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    Dim tocLines(200) As String
+    Dim tocIsSub(200) As Boolean
+    Dim lnCount As Long
+    lnCount = 0
+
+    Dim emitP(50) As String
+    Dim emitPCnt As Long
+    emitPCnt = 0
+
+    Dim pw As String
+    pw = ChrW(12506) & ChrW(12540) & ChrW(12472)  ' ãƒšãƒ¼ã‚¸
+    Dim aw As String
+    aw = ChrW(8594)  ' â†’
+    Dim isp As String
+    isp = ChrW(12288)  ' ã€€ (ideographic space)
+
+    For k = 1 To sCount
+        Dim dotP As Long
+        dotP = InStr(sKeys(k), ".")
+
+        If dotP > 0 Then
+            ' â”€â”€ Sub-section: emit parent group line first if needed â”€â”€
+            Dim pKey As String
+            pKey = Left(sKeys(k), dotP - 1)
+
+            If Not IsEmitted(pKey, emitP, emitPCnt) Then
+                Dim pTitle As String
+                pTitle = LookupOldParent(pKey, oldPKeys, oldPTitles, oldPCount)
+
+                lnCount = lnCount + 1
+                tocIsSub(lnCount) = False
+                If Len(pTitle) > 0 Then
+                    tocLines(lnCount) = pKey & "." & isp & pTitle
+                Else
+                    tocLines(lnCount) = pKey & "."
+                End If
+
+                emitPCnt = emitPCnt + 1
+                emitP(emitPCnt) = pKey
+            End If
+
+            ' â”€â”€ Sub-section line (indented with leading spaces, with page ref) â”€â”€
+            lnCount = lnCount + 1
+            tocIsSub(lnCount) = True
+            tocLines(lnCount) = isp & isp & sKeys(k) & isp & sTitles(k) & _
+                tabTpl & aw & " " & pw & " " & PageNumStr(sFirst(k), sLast(k))
+        Else
+            ' â”€â”€ Top-level section â”€â”€
+            ' Check if it is also a parent of sub-sections
+            If HasSubSections(sKeys(k), sKeys, sCount) Then
+                If Not IsEmitted(sKeys(k), emitP, emitPCnt) Then
+                    emitPCnt = emitPCnt + 1
+                    emitP(emitPCnt) = sKeys(k)
+                End If
+            End If
+
+            lnCount = lnCount + 1
+            tocIsSub(lnCount) = False
+            tocLines(lnCount) = sKeys(k) & "." & isp & sTitles(k) & _
+                tabTpl & aw & " " & pw & " " & PageNumStr(sFirst(k), sLast(k))
+        End If
+    Next k
+
+    ' â”€â”€ Write TOC text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    Dim tocText As String
+    tocText = ""
+    For k = 1 To lnCount
+        If k > 1 Then tocText = tocText & Chr(13)
+        tocText = tocText & tocLines(k)
+    Next k
+
+    tocBox.TextFrame.TextRange.Text = tocText
+
+    ' Indent is handled by leading ideographic spaces in the text itself
+
+    pres.Save
+    MsgBox "TOC updated!"
+End Sub
+
+' â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+'  Helpers
+' â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+
+Private Function FindTOCBox(sld As Slide) As Shape
+    Dim shp As Shape
+    Dim pw As String
+    pw = ChrW(12506) & ChrW(12540) & ChrW(12472)
+    For Each shp In sld.Shapes
+        If shp.Name = "TextBox 1" Then
+            If shp.HasTextFrame Then
+                Set FindTOCBox = shp
+                Exit Function
+            End If
+        End If
+    Next shp
+    For Each shp In sld.Shapes
+        If shp.HasTextFrame Then
+            If InStr(shp.TextFrame.TextRange.Text, pw) > 0 Then
+                Set FindTOCBox = shp
+                Exit Function
+            End If
+        End If
+    Next shp
+End Function
+
+Private Function GetHeader(sld As Slide) As String
+    Dim shp As Shape
+    For Each shp In sld.Shapes
+        If shp.Name = "header" Then
+            If shp.HasTextFrame Then
+                GetHeader = Trim(shp.TextFrame.TextRange.Text)
+                Exit Function
+            End If
+        End If
+    Next shp
+End Function
+
+Private Function ParseSectionKey(s As String) As String
+    Dim result As String
+    result = ""
+    Dim inSub As Boolean
+    inSub = False
+    Dim i As Long, startPos As Long
+    startPos = 1
+    Do While startPos <= Len(s)
+        Dim cp As Long
+        cp = AscW(Mid(s, startPos, 1))
+        If cp = 32 Or cp = 9 Or cp = 12288 Then
+            startPos = startPos + 1
+        Else
+            Exit Do
+        End If
+    Loop
+    Dim c As String
+    For i = startPos To Len(s)
+        c = Mid(s, i, 1)
+        If c >= "0" And c <= "9" Then
+            result = result & c
+        ElseIf c = "." Then
+            If inSub Or Len(result) = 0 Then Exit For
+            If i < Len(s) Then
+                If Mid(s, i + 1, 1) >= "0" And Mid(s, i + 1, 1) <= "9" Then
+                    result = result & "."
+                    inSub = True
+                Else
+                    Exit For
+                End If
+            Else
+                Exit For
+            End If
+        Else
+            Exit For
+        End If
+    Next i
+    ParseSectionKey = result
+End Function
+
+Private Function ExtractTitle(header As String, key As String) As String
+    Dim pos As Long
+    pos = Len(key) + 1
+    Do While pos <= Len(header)
+        Dim cp As Long
+        cp = AscW(Mid(header, pos, 1))
+        If cp = 46 Or cp = 32 Or cp = 12288 Or cp = 12290 Then
+            pos = pos + 1
+        Else
+            Exit Do
+        End If
+    Loop
+    Dim result As String
+    result = Mid(header, pos)
+    Do While Len(result) > 0
+        Dim lc As Long
+        lc = AscW(Right(result, 1))
+        If lc = 13 Or lc = 10 Or lc = 11 Then
+            result = Left(result, Len(result) - 1)
+        Else
+            Exit Do
+        End If
+    Loop
+    ExtractTitle = result
+End Function
+
+Private Function PageNumStr(firstPage As Long, lastPage As Long) As String
+    If lastPage > firstPage Then
+        PageNumStr = CStr(firstPage) & ChrW(65374) & CStr(lastPage)
+    Else
+        PageNumStr = CStr(firstPage)
+    End If
+End Function
+
+Private Function GetTabTemplate(tr As TextRange) As String
+    Dim pw As String
+    pw = ChrW(12506) & ChrW(12540) & ChrW(12472)
+    Dim p As Long
+    For p = 1 To tr.Paragraphs.Count
+        Dim pt As String
+        pt = tr.Paragraphs(p).Text
+        If InStr(pt, pw) > 0 Then
+            Dim arrowP As Long
+            arrowP = InStr(pt, ChrW(8594))
+            Dim tabS As Long
+            tabS = InStr(pt, Chr(9))
+            If tabS > 0 And arrowP > tabS Then
+                GetTabTemplate = Mid(pt, tabS, arrowP - tabS)
+                Exit Function
+            End If
+        End If
+    Next p
+    GetTabTemplate = Chr(9) & Chr(9) & Chr(9) & Chr(9) & Chr(9)
+End Function
+
+Private Sub ReadOldParents(tocBox As Shape, keys() As String, titles() As String, cnt As Long)
+    Dim tr As TextRange
+    Set tr = tocBox.TextFrame.TextRange
+    Dim pw As String
+    pw = ChrW(12506) & ChrW(12540) & ChrW(12472)
+    Dim p As Long
+    For p = 1 To tr.Paragraphs.Count
+        Dim pt As String
+        pt = tr.Paragraphs(p).Text
+        If InStr(pt, pw) > 0 Then GoTo NextOld
+        Dim key As String
+        key = ParseSectionKey(pt)
+        If Len(key) = 0 Then GoTo NextOld
+        If InStr(key, ".") > 0 Then GoTo NextOld
+        cnt = cnt + 1
+        keys(cnt) = key
+        titles(cnt) = ExtractTitle(pt, key)
+NextOld:
+    Next p
+End Sub
+
+Private Function LookupOldParent(pKey As String, keys() As String, titles() As String, cnt As Long) As String
+    Dim i As Long
+    For i = 1 To cnt
+        If keys(i) = pKey Then
+            LookupOldParent = titles(i)
+            Exit Function
+        End If
+    Next i
+    LookupOldParent = ""
+End Function
+
+Private Function IsEmitted(key As String, arr() As String, cnt As Long) As Boolean
+    Dim i As Long
+    For i = 1 To cnt
+        If arr(i) = key Then
+            IsEmitted = True
+            Exit Function
+        End If
+    Next i
+    IsEmitted = False
+End Function
+
+Private Function HasSubSections(key As String, sKeys() As String, sCount As Long) As Boolean
+    Dim prefix As String
+    prefix = key & "."
+    Dim j As Long
+    For j = 1 To sCount
+        If Left(sKeys(j), Len(prefix)) = prefix Then
+            HasSubSections = True
+            Exit Function
+        End If
+    Next j
+    HasSubSections = False
+End Function
+
