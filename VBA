@@ -1,16 +1,13 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui">
   <ribbon>
     <tabs>
-      <tab id="tabTOCTools" label="TOC Tools" insertAfterMso="TabDeveloper">
-        <group id="grpTOCUpdate" label="Table of Contents">
+      <tab id="tabMyTool" label="My Tool">
+        <group id="grpTOC" label="TOC Tools">
           <button id="btnUpdateTOC"
                   label="Update TOC"
-                  imageMso="TableOfContentsUpdate"
                   size="large"
-                  onAction="UpdateTOCRibbon"
-                  screentip="Update Table of Contents"
-                  supertip="Select the TOC textbox first, then click." />
+                  onAction="UpdateTOCRibbon" />
         </group>
       </tab>
     </tabs>
