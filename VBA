@@ -1,13 +1,25 @@
-                Dim para As TextRange
-                Set para = tocBox.TextFrame.TextRange.Paragraphs(p)
-                ' Select only from "ページ" to end of page number/range
-                Dim linkLen As Long
-                linkLen = Len(pText) - pwPos + 1
-                ' Strip trailing CR if present
-                If Right(Mid(pText, pwPos, linkLen), 1) = Chr(13) Then
-                    linkLen = linkLen - 1
-                End If
-                Dim rng As TextRange
-                Set rng = para.Characters(pwPos, linkLen)
-                rng.ActionSettings(ppMouseClick).Hyperlink.SubAddress = _
-                    pres.Slides(slideIdx).SlideID & "," & slideIdx & ","
+Private Function GetHeaderShape(sld As Slide) As Shape
+    Dim shp As Shape
+    For Each shp In sld.Shapes
+        If shp.Name = "header" Then
+            If shp.HasTextFrame Then
+                Set GetHeaderShape = shp
+                Exit Function
+            End If
+        End If
+    Next shp
+End Function
+
+
+For i = tocSlideIdx + 1 To pres.Slides.Count
+    Dim hdrShape As Shape
+    Set hdrShape = GetHeaderShape(pres.Slides(i))
+
+    If hdrShape Is Nothing Then GoTo NextSlide
+
+    hdr = Trim(hdrShape.TextFrame.TextRange.Text)
+
+    With hdrShape.ActionSettings(ppMouseClick).Hyperlink
+        .Address = ""
+        .SubAddress = tocSlide.SlideID & "," & tocSlide.SlideIndex & "," & tocSlide.Name
+    End With
