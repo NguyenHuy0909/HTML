@@ -142,7 +142,7 @@ Private Function AlignOneOverlayPlotArea(ByVal ws As Worksheet, ByRef groupConfi
     wsInsideRight = wsInsideLeft + topChart.Chart.PlotArea.insideWidth
     wsInsideTop = topChart.Top + topChart.Chart.PlotArea.InsideTop
     wsInsideBottom = bottomChart.Top + bottomChart.Chart.PlotArea.InsideTop + _
-                     bottomChart.Chart.PlotArea.InsideHeight
+                     bottomChart.Chart.PlotArea.InsideHeight + BOTTOM_OFFSET_PT
 
     LogStep1bTarget groupConfig, overlay, topChart, bottomChart, _
                     BOTTOM_OFFSET_PT, wsInsideTop, wsInsideBottom
@@ -336,6 +336,10 @@ Sub Step2_MoveShapesToMaxY()
     Set cfgWs = ThisWorkbook.Sheets(CONFIG_SHEET_NAME)
 
     Set ws = ThisWorkbook.Sheets(CStr(modConfig.ReadConfigSetting(cfgWs, "DataSheetName", DATA_SHEET_NAME)))
+    ResetStep2Log
+    LogStep2Message "=== Step2 start: " & Format$(Now, "yyyy-mm-dd hh:nn:ss") & " ==="
+    LogStep2Message "Workbook=" & ThisWorkbook.FullName
+    LogStep2Message "DataSheetName=" & ws.Name & "; ShapeCount=" & ws.Shapes.Count
 
     Dim leftMargin As Double
     leftMargin = CDbl(modConfig.ReadConfigSetting(cfgWs, "LabelLeftMarginPt", 1))
@@ -347,8 +351,10 @@ Sub Step2_MoveShapesToMaxY()
     groupCount = ReadStepChartGroups(cfgWs, groups)
     If groupCount = 0 Then
         Debug.Print "Step2: no GroupImage chart config found in " & CONFIG_SHEET_NAME
+        LogStep2Message "ERROR: no GroupImage chart config found in " & CONFIG_SHEET_NAME
         Exit Sub
     End If
+    LogStep2Message "GroupCount=" & groupCount & "; LeftMarginPt=" & leftMargin & "; RightMarginPt=" & rightMargin
 
     Dim movedCount As Long
     Dim groupIdx As Long
@@ -357,17 +363,28 @@ Sub Step2_MoveShapesToMaxY()
         Dim topChart As chartObject
         Dim middleChart As chartObject
         Dim bottomChart As chartObject
-        If Not ResolveStep1Group(ws, groups(groupIdx), overlay, topChart, middleChart, bottomChart) Then GoTo NextGroup
+        LogStep2Message "Group " & groupIdx & ": overlay=" & groups(groupIdx).OverlayName & _
+                        "; children=" & groups(groupIdx).ChildTopName & "|" & _
+                        groups(groupIdx).ChildMiddleName & "|" & groups(groupIdx).ChildBottomName & _
+                        "; scoreRange=" & groups(groupIdx).ScoreModel1Range
+        If Not ResolveStep1Group(ws, groups(groupIdx), overlay, topChart, middleChart, bottomChart) Then
+            LogStep2Message "  SKIP group " & groupIdx & ": missing one or more chart objects."
+            GoTo NextGroup
+        End If
         If Len(groups(groupIdx).ScoreModel1Range) = 0 Then
             Debug.Print "  WARNING [" & overlay.Name & "]: missing Step2Model1ScoreRange in ExportConfig"
+            LogStep2Message "  SKIP [" & overlay.Name & "]: missing Step2Model1ScoreRange in ExportConfig"
             GoTo NextGroup
         End If
 
         Dim modelCount As Long
         modelCount = overlay.Chart.SeriesCollection.Count
+        LogStep2Message "  OverlaySeriesCount=" & modelCount
         If modelCount > MAX_MODEL Then
             Debug.Print "  WARNING [" & overlay.Name & "]: series count " & modelCount & _
                         " exceeds supported TextBox models 1-" & MAX_MODEL
+            LogStep2Message "  WARNING [" & overlay.Name & "]: series count " & modelCount & _
+                            " exceeds supported TextBox models 1-" & MAX_MODEL
             modelCount = MAX_MODEL
         End If
 
@@ -404,10 +421,12 @@ NextGroup:
     Next groupIdx
 
     Debug.Print "=== Step2: MoveShapesToMaxY done. moved=" & movedCount
+    LogStep2Message "=== Step2 done. moved=" & movedCount & " ==="
     Exit Sub
 
 CleanFail:
     Debug.Print "Step2 ERROR: " & Err.Number & " - " & Err.Description
+    LogStep2Message "Step2 ERROR: " & Err.Number & " - " & Err.Description
 End Sub
 
 Private Function MoveOneModelTextBox(ByVal ws As Worksheet, _
@@ -431,14 +450,26 @@ Private Function MoveOneModelTextBox(ByVal ws As Worksheet, _
     Set sourceLabel = TryGetWorksheetShape(ws, textBoxName)
     If sourceLabel Is Nothing Then
         Debug.Print "  WARNING [" & overlay.Name & "]: missing " & textBoxName
+        LogStep2Message "    MISS [" & overlay.Name & "] model=" & modelIdx & _
+                        " group=" & groupNumber & ": " & textBoxName & _
+                        " not found on sheet " & ws.Name & _
+                        "; similar=" & SimilarShapeNames(ws, textBoxName, 12)
         Exit Function
     End If
+    LogStep2Message "    FOUND [" & overlay.Name & "] " & textBoxName & _
+                    " at L=" & Format$(sourceLabel.Left, "0.00") & _
+                    " T=" & Format$(sourceLabel.Top, "0.00") & _
+                    " W=" & Format$(sourceLabel.Width, "0.00") & _
+                    " H=" & Format$(sourceLabel.Height, "0.00")
 
     Dim targetChartIdx As Long
     targetChartIdx = MaxIndexInConfiguredRange(ws, groupConfig.ScoreModel1Range, modelIdx)
     If targetChartIdx < 1 Then
         Debug.Print "  WARNING [" & overlay.Name & "]: no valid score in " & _
                     groupConfig.ScoreModel1Range & " for model " & modelIdx
+        LogStep2Message "    SKIP [" & overlay.Name & "] " & textBoxName & _
+                        ": no valid score in " & groupConfig.ScoreModel1Range & _
+                        " for model " & modelIdx
         Exit Function
     End If
 
@@ -485,6 +516,11 @@ Private Function MoveOneModelTextBox(ByVal ws As Worksheet, _
                 " x=" & Format$(xValue, "0.00") & _
                 " L=" & Format$(modelLabel.Left, "0.00") & _
                 " T=" & Format$(modelLabel.Top, "0.00")
+    LogStep2Message "    MOVED [" & textBoxName & "] copy=" & modelLabel.Name & _
+                    "; target=" & targetChart.Name & _
+                    "; x=" & Format$(xValue, "0.00") & _
+                    "; L=" & Format$(modelLabel.Left, "0.00") & _
+                    "; T=" & Format$(modelLabel.Top, "0.00")
     MoveOneModelTextBox = True
 End Function
 
@@ -707,6 +743,67 @@ Private Function TryGetWorksheetShape(ByVal ws As Worksheet, ByVal shapeName As 
     On Error Resume Next
     Set TryGetWorksheetShape = ws.Shapes(shapeName)
     On Error GoTo 0
+End Function
+
+Private Sub ResetStep2Log()
+    On Error GoTo CleanExit
+    Reset
+
+    Dim fn As Integer
+    fn = FreeFile
+    Open ThisWorkbook.Path & "\step2_debug.txt" For Output As #fn
+    Close #fn
+
+CleanExit:
+    On Error Resume Next
+    Close #fn
+    On Error GoTo 0
+End Sub
+
+Private Sub LogStep2Message(ByVal message As String)
+    Debug.Print message
+
+    On Error GoTo CleanExit
+    Dim fn As Integer
+    fn = FreeFile
+    Open ThisWorkbook.Path & "\step2_debug.txt" For Append As #fn
+    Print #fn, message
+    Close #fn
+
+CleanExit:
+    On Error Resume Next
+    Close #fn
+    On Error GoTo 0
+End Sub
+
+Private Function SimilarShapeNames(ByVal ws As Worksheet, _
+                                   ByVal expectedName As String, _
+                                   ByVal maxNames As Long) As String
+    Dim expectedNumber As String
+    expectedNumber = DigitsOnly(expectedName)
+
+    Dim shp As Shape
+    Dim foundCount As Long
+    For Each shp In ws.Shapes
+        If InStr(1, shp.Name, "TextBox", vbTextCompare) > 0 Or _
+           InStr(1, shp.Name, expectedNumber, vbTextCompare) > 0 Then
+            foundCount = foundCount + 1
+            If Len(SimilarShapeNames) > 0 Then SimilarShapeNames = SimilarShapeNames & ", "
+            SimilarShapeNames = SimilarShapeNames & shp.Name
+            If foundCount >= maxNames Then Exit For
+        End If
+    Next shp
+
+    If Len(SimilarShapeNames) = 0 Then SimilarShapeNames = "(none)"
+End Function
+
+Private Function DigitsOnly(ByVal textValue As String) As String
+    Dim idx As Long
+    For idx = 1 To Len(textValue)
+        Dim ch As String
+        ch = Mid$(textValue, idx, 1)
+        If ch >= "0" And ch <= "9" Then DigitsOnly = DigitsOnly & ch
+    Next idx
 End Function
 
 Private Function GetVerticalLineX(ByVal cht As Chart, ByVal seriesIdx As Long) As Double
