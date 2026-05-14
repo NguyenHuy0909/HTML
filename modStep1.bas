@@ -1,4 +1,3 @@
-Attribute VB_Name = "modStep1"
 Option Explicit
 ' Step 1a: Align overlay ChartObjects to cover configured child chart groups
 ' Step 1b: Align overlay PlotAreas to match configured child chart groups
@@ -143,7 +142,10 @@ Private Function AlignOneOverlayPlotArea(ByVal ws As Worksheet, ByRef groupConfi
     wsInsideRight = wsInsideLeft + topChart.Chart.PlotArea.insideWidth
     wsInsideTop = topChart.Top + topChart.Chart.PlotArea.InsideTop
     wsInsideBottom = bottomChart.Top + bottomChart.Chart.PlotArea.InsideTop + _
-                     bottomChart.Chart.PlotArea.InsideHeight + BOTTOM_OFFSET_PT
+                     bottomChart.Chart.PlotArea.InsideHeight
+
+    LogStep1bTarget groupConfig, overlay, topChart, bottomChart, _
+                    BOTTOM_OFFSET_PT, wsInsideTop, wsInsideBottom
 
     With overlay.Chart.PlotArea
         .Left = wsInsideLeft - overlay.Left
@@ -198,6 +200,37 @@ Private Function AlignOneOverlayPlotArea(ByVal ws As Worksheet, ByRef groupConfi
 
     AlignOneOverlayPlotArea = True
 End Function
+
+Private Sub LogStep1bTarget(ByRef groupConfig As StepChartGroup, _
+                            ByVal overlay As chartObject, _
+                            ByVal topChart As chartObject, _
+                            ByVal bottomChart As chartObject, _
+                            ByVal bottomOffsetPt As Double, _
+                            ByVal wsInsideTop As Double, _
+                            ByVal wsInsideBottom As Double)
+    On Error GoTo CleanExit
+
+    Reset
+
+    Dim debugFile As String
+    debugFile = ThisWorkbook.Path & "\step1b_debug.txt"
+
+    Dim fn As Integer
+    fn = FreeFile
+    Open debugFile For Append As #fn
+    Print #fn, "--- " & groupConfig.OverlayName & " ---"
+    Print #fn, "BOTTOM_OFFSET_PT=" & bottomOffsetPt
+    Print #fn, "overlay: T=" & Format$(overlay.Top, "0.00") & " H=" & Format$(overlay.Height, "0.00") & " Bot=" & Format$(overlay.Top + overlay.Height, "0.00")
+    Print #fn, "topChart: T=" & Format$(topChart.Top, "0.00") & " InsTop=" & Format$(topChart.Chart.PlotArea.InsideTop, "0.00") & " InsH=" & Format$(topChart.Chart.PlotArea.InsideHeight, "0.00")
+    Print #fn, "btmChart: T=" & Format$(bottomChart.Top, "0.00") & " InsTop=" & Format$(bottomChart.Chart.PlotArea.InsideTop, "0.00") & " InsH=" & Format$(bottomChart.Chart.PlotArea.InsideHeight, "0.00")
+    Print #fn, "target: wsInsideTop=" & Format$(wsInsideTop, "0.00") & " wsInsideBottom=" & Format$(wsInsideBottom, "0.00")
+    Close #fn
+
+CleanExit:
+    On Error Resume Next
+    Close #fn
+    On Error GoTo 0
+End Sub
 
 Private Function ResolveStep1Group(ByVal ws As Worksheet, ByRef groupConfig As StepChartGroup, _
                                    ByRef overlay As chartObject, _
