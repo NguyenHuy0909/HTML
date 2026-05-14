@@ -1,4 +1,3 @@
-Attribute VB_Name = "modScaleSync"
 Option Explicit
 ' Sync axis scale cua tat ca ChartObjects hien co theo bang R1:T3 tren Sheet1
 '   S2 = X-min, S3 = X-max, T2 = Y-min, T3 = Y-max
