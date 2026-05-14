@@ -1,8 +1,10 @@
-Attribute VB_Name = "modStep1"
 Option Explicit
 ' Step 1a: Align overlay ChartObjects to cover configured child chart groups
 ' Step 1b: Align overlay PlotAreas to match configured child chart groups
 ' Step 2 : Move model TextBoxes to configured overlay series lines and N:P target charts
+
+Private Const DATA_SHEET_NAME As String = "Sheet1"
+Private Const CONFIG_SHEET_NAME As String = "ExportConfig"
 
 Private Type StepChartGroup
     OverlayName As String
@@ -15,21 +17,20 @@ End Type
 ' =============================================================================
 Sub Step1a_AlignChartObject()
 ' =============================================================================
-    Const SHEET_NAME As String = "Sheet1"
-    Const CONFIG_SHEET As String = "ExportConfig"
+    '
     On Error GoTo CleanFail
 
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Sheets(SHEET_NAME)
+    Set ws = ThisWorkbook.Sheets(DATA_SHEET_NAME)
 
     Dim cfgWs As Worksheet
-    Set cfgWs = ThisWorkbook.Sheets(CONFIG_SHEET)
+    Set cfgWs = ThisWorkbook.Sheets(CONFIG_SHEET_NAME)
 
     Dim groups() As StepChartGroup
     Dim groupCount As Long
     groupCount = ReadStepChartGroups(cfgWs, groups)
     If groupCount = 0 Then
-        Debug.Print "Step1a: no GroupImage chart config found in " & CONFIG_SHEET
+        Debug.Print "Step1a: no GroupImage chart config found in " & CONFIG_SHEET_NAME
         Exit Sub
     End If
 
@@ -51,21 +52,20 @@ End Sub
 ' =============================================================================
 Sub Step1b_AlignPlotArea()
 ' =============================================================================
-    Const SHEET_NAME As String = "Sheet1"
-    Const CONFIG_SHEET As String = "ExportConfig"
+    '
     On Error GoTo CleanFail
 
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Sheets(SHEET_NAME)
+    Set ws = ThisWorkbook.Sheets(DATA_SHEET_NAME)
 
     Dim cfgWs As Worksheet
-    Set cfgWs = ThisWorkbook.Sheets(CONFIG_SHEET)
+    Set cfgWs = ThisWorkbook.Sheets(CONFIG_SHEET_NAME)
 
     Dim groups() As StepChartGroup
     Dim groupCount As Long
     groupCount = ReadStepChartGroups(cfgWs, groups)
     If groupCount = 0 Then
-        Debug.Print "Step1b: no GroupImage chart config found in " & CONFIG_SHEET
+        Debug.Print "Step1b: no GroupImage chart config found in " & CONFIG_SHEET_NAME
         Exit Sub
     End If
 
@@ -117,6 +117,7 @@ End Function
 Private Function AlignOneOverlayPlotArea(ByVal ws As Worksheet, ByRef groupConfig As StepChartGroup) As Boolean
     Const MAX_ADJUST_ATTEMPTS As Long = 5
     Const ALIGN_TOLERANCE_PT As Double = 0.05
+    Const BOTTOM_OFFSET_PT As Double = 3#   ' hiá»‡u chá»‰nh cáº¡nh dÆ°á»›i overlay (dÆ°Æ¡ng = xuá»‘ng)
 
     Dim overlay As chartObject, topChart As chartObject
     Dim middleChart As chartObject, bottomChart As chartObject
@@ -130,7 +131,7 @@ Private Function AlignOneOverlayPlotArea(ByVal ws As Worksheet, ByRef groupConfi
     wsInsideRight = wsInsideLeft + topChart.Chart.PlotArea.insideWidth
     wsInsideTop = topChart.Top + topChart.Chart.PlotArea.InsideTop
     wsInsideBottom = bottomChart.Top + bottomChart.Chart.PlotArea.InsideTop + _
-                     bottomChart.Chart.PlotArea.InsideHeight
+                     bottomChart.Chart.PlotArea.InsideHeight + BOTTOM_OFFSET_PT
 
     With overlay.Chart.PlotArea
         .Left = wsInsideLeft - overlay.Left
@@ -182,6 +183,7 @@ Private Function AlignOneOverlayPlotArea(ByVal ws As Worksheet, ByRef groupConfi
                 " R=" & Format$(overlay.Left + pa.insideLeft + pa.insideWidth, "0.00") & _
                 " T=" & Format$(overlay.Top + pa.InsideTop, "0.00") & _
                 " B=" & Format$(overlay.Top + pa.InsideTop + pa.InsideHeight, "0.00")
+
     AlignOneOverlayPlotArea = True
 End Function
 
@@ -278,8 +280,7 @@ End Function
 ' =============================================================================
 Sub Step2_MoveShapesToMaxY()
 ' =============================================================================
-    Const SHEET_NAME As String = "Sheet1"
-    Const CONFIG_SHEET As String = "ExportConfig"
+    '
     Const FIRST_MODEL As Long = 1
     Const MAX_MODEL As Long = 8
     Const LINE_HALF_W As Double = 0.75         ' 1.5pt line / 2
@@ -287,16 +288,16 @@ Sub Step2_MoveShapesToMaxY()
     On Error GoTo CleanFail
 
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Sheets(SHEET_NAME)
+    Set ws = ThisWorkbook.Sheets(DATA_SHEET_NAME)
 
     Dim cfgWs As Worksheet
-    Set cfgWs = ThisWorkbook.Sheets(CONFIG_SHEET)
+    Set cfgWs = ThisWorkbook.Sheets(CONFIG_SHEET_NAME)
 
     Dim groups() As StepChartGroup
     Dim groupCount As Long
     groupCount = ReadStepChartGroups(cfgWs, groups)
     If groupCount = 0 Then
-        Debug.Print "Step2: no GroupImage chart config found in " & CONFIG_SHEET
+        Debug.Print "Step2: no GroupImage chart config found in " & CONFIG_SHEET_NAME
         Exit Sub
     End If
 
