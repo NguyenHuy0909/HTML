@@ -1,4 +1,3 @@
-Attribute VB_Name = "modConfig"
 Option Explicit
 ' Shared constants and ExportConfig sheet management
 ' Used by modStep1, modStep3_Export
