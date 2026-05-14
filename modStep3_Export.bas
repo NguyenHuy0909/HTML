@@ -1,4 +1,3 @@
-Attribute VB_Name = "modStep3_Export"
 Option Explicit
 ' Step 3: Export charts/ranges/text from Excel to PowerPoint (Adaptive Placement)
 '
@@ -46,7 +45,7 @@ Private Type ExportItem
 End Type
 
 ' PPT slide assumed 16:9 widescreen = 914.4 x 514.4 pt (33.867cm x 19.05cm)
-' Positions below are reasonable defaults — tweak via ExportConfig sheet or drag-in-PPT.
+' Positions below are reasonable defaults â€” tweak via ExportConfig sheet or drag-in-PPT.
 
 ' =============================================================================
 Public Sub ExportToPPT()
@@ -311,7 +310,7 @@ Private Sub OpenPresentation(ByRef pptApp As Object, ByRef pres As Object, _
 End Sub
 
 ' =============================================================================
-' INTERNAL: adaptive position — read existing shape position from PPT
+' INTERNAL: adaptive position â€” read existing shape position from PPT
 ' =============================================================================
 Private Sub AdaptPosition(ByVal pres As Object, ByRef item As ExportItem)
     If item.slideIdx < 1 Or item.slideIdx > pres.Slides.Count Then Exit Sub
@@ -891,7 +890,7 @@ Private Function ExportRangeTable(ByVal sld As Object, ByRef item As ExportItem,
     Set srcRange = ws.Range(item.sourceRef)
     srcRange.Copy
 
-    ' ppPasteHTML=8 → creates editable table in PPT
+    ' ppPasteHTML=8 â†’ creates editable table in PPT
     Dim sr As Object
     Set sr = sld.Shapes.PasteSpecial(8)
     Application.CutCopyMode = False
