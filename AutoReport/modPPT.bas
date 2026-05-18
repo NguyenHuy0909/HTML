@@ -1,4 +1,3 @@
-Attribute VB_Name = "modPPT"
 Option Explicit
 
 ' =============================================================================
@@ -81,7 +80,7 @@ Public Sub ExportToPPT()
             ExportChart co, sld, bounds, chartPfx, slideW, slideH
         Next co
 
-        ' All line shapes (prefix "Line_") — lines + circle markers
+        ' All line shapes (prefix "Line_") â€” lines + circle markers
         Dim lineShp As Shape
         For Each lineShp In ws.Shapes
             If Left$(lineShp.Name, 5) = "Line_" Then
@@ -89,7 +88,7 @@ Public Sub ExportToPPT()
             End If
         Next lineShp
 
-        ' All label shapes (prefix "LabelOut_") — textbox copies from modShape
+        ' All label shapes (prefix "LabelOut_") â€” textbox copies from modShape
         Dim labelShp As Shape
         For Each labelShp In ws.Shapes
             If Left$(labelShp.Name, 9) = "LabelOut_" Then
@@ -144,9 +143,9 @@ Private Sub ApplyTableFont(ByVal tbl As Object, _
                             ByVal fontName As String, ByVal fontSize As Double)
     If Len(fontName) = 0 And fontSize <= 0 Then Exit Sub
     Dim r As Long, c As Long
-    For r = 1 To tbl.Rows.Count
-        For c = 1 To tbl.Columns.Count
-            With tbl.Cell(r, c).Shape.TextFrame.TextRange.Font
+    For r = 1 To tbl.rows.count
+        For c = 1 To tbl.Columns.count
+            With tbl.cell(r, c).Shape.TextFrame.TextRange.Font
                 If Len(fontName) > 0 Then .Name = fontName
                 If fontSize > 0 Then .Size = fontSize
             End With
@@ -161,9 +160,9 @@ Private Sub ExportChart(ByVal co As chartObject, ByVal sld As Object, _
     DeleteByName sld, sName
 
     Dim scaleY As Double: scaleY = slideH / bounds.Height
-    Dim pptL As Double: pptL = (co.Left  - bounds.Left) * scaleY
-    Dim pptT As Double: pptT = (co.Top   - bounds.Top)  * scaleY
-    Dim pptW As Double: pptW = co.Width  * scaleY
+    Dim pptL As Double: pptL = (co.Left - bounds.Left) * scaleY
+    Dim pptT As Double: pptT = (co.Top - bounds.Top) * scaleY
+    Dim pptW As Double: pptW = co.Width * scaleY
     Dim pptH As Double: pptH = co.Height * scaleY
 
     Dim tmpFile As String
@@ -207,8 +206,8 @@ Private Sub ExportLineShape(ByVal xlShp As Shape, ByVal sld As Object, _
 
     Dim scaleY As Double: scaleY = slideH / bounds.Height
     Dim pptL   As Double: pptL = (xlShp.Left - bounds.Left) * scaleY
-    Dim pptT   As Double: pptT = (xlShp.Top  - bounds.Top)  * scaleY
-    Dim pptW   As Double: pptW = xlShp.Width  * scaleY
+    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleY
+    Dim pptW   As Double: pptW = xlShp.Width * scaleY
     Dim pptH   As Double: pptH = xlShp.Height * scaleY
 
     Dim pptShp As Object
@@ -216,7 +215,7 @@ Private Sub ExportLineShape(ByVal xlShp As Shape, ByVal sld As Object, _
     Err.Clear
 
     If xlShp.Type = 9 Then
-        ' ── Dashed vertical line — CopyPicture (preserves dash style exactly) ──
+        ' â”€â”€ Dashed vertical line â€” CopyPicture (preserves dash style exactly) â”€â”€
         xlShp.CopyPicture Appearance:=xlScreen, Format:=xlPicture
         DoEvents
         Set pptShp = sld.Shapes.PasteSpecial(ppPasteEnhancedMetafile)
@@ -229,19 +228,19 @@ Private Sub ExportLineShape(ByVal xlShp As Shape, ByVal sld As Object, _
         End If
         On Error Resume Next
         pptShp.LockAspectRatio = msoFalse
-        pptShp.Left   = pptL
-        pptShp.Top    = pptT
-        pptShp.Width  = 1
+        pptShp.Left = pptL
+        pptShp.Top = pptT
+        pptShp.Width = 1
         pptShp.Height = pptH
-        pptShp.Name   = xlShp.Name
+        pptShp.Name = xlShp.Name
         On Error GoTo 0
     Else
-        ' ── Oval marker — AddShape (exact color, no distortion) ──────────────
+        ' â”€â”€ Oval marker â€” AddShape (exact color, no distortion) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Set pptShp = sld.Shapes.AddShape(9, pptL, pptT, pptW, pptH)
         If Err.Number = 0 And Not pptShp Is Nothing Then
-            pptShp.Line.Visible       = msoFalse
+            pptShp.Line.Visible = msoFalse
             pptShp.Fill.ForeColor.RGB = xlShp.Fill.ForeColor.RGB
-            pptShp.Name               = xlShp.Name
+            pptShp.Name = xlShp.Name
         End If
         On Error GoTo 0
     End If
@@ -294,8 +293,8 @@ End Sub
 
 
 ' --- Label shapes (LabelOut_ prefix) ----------------------------------------
-' CopyPicture + PasteSpecial(EMF) — scale Left/Top/Width/Height bằng scaleY.
-' fontName / fontSize: lấy chung từ DataTableFontName / DataTableFontSize (config).
+' CopyPicture + PasteSpecial(EMF) â€” scale Left/Top/Width/Height báº±ng scaleY.
+' fontName / fontSize: láº¥y chung tá»« DataTableFontName / DataTableFontSize (config).
 Private Sub ExportLabelShape(ByVal xlShp As Shape, ByVal sld As Object, _
                               ByVal bounds As Range, ByVal slideH As Double, _
                               ByVal fontName As String, ByVal fontSize As Double)
@@ -303,8 +302,8 @@ Private Sub ExportLabelShape(ByVal xlShp As Shape, ByVal sld As Object, _
 
     Dim scaleY As Double: scaleY = slideH / bounds.Height
     Dim pptL   As Double: pptL = (xlShp.Left - bounds.Left) * scaleY
-    Dim pptT   As Double: pptT = (xlShp.Top  - bounds.Top)  * scaleY
-    Dim pptW   As Double: pptW = xlShp.Width  * scaleY
+    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleY
+    Dim pptW   As Double: pptW = xlShp.Width * scaleY
     Dim pptH   As Double: pptH = xlShp.Height * scaleY
 
     xlShp.CopyPicture Appearance:=xlScreen, Format:=xlPicture
@@ -325,13 +324,13 @@ Private Sub ExportLabelShape(ByVal xlShp As Shape, ByVal sld As Object, _
 
     On Error Resume Next
     pptShp.LockAspectRatio = msoFalse
-    pptShp.Left   = pptL
-    pptShp.Top    = pptT
-    pptShp.Width  = pptW
+    pptShp.Left = pptL
+    pptShp.Top = pptT
+    pptShp.Width = pptW
     pptShp.Height = pptH
     If Len(fontName) > 0 Then pptShp.TextFrame.TextRange.Font.Name = fontName
-    If fontSize > 0     Then pptShp.TextFrame.TextRange.Font.Size = fontSize
-    pptShp.Name   = xlShp.Name
+    If fontSize > 0 Then pptShp.TextFrame.TextRange.Font.Size = fontSize
+    pptShp.Name = xlShp.Name
     On Error GoTo 0
 
     Debug.Print "  [OK] " & xlShp.Name & " L=" & Pt(pptL) & " T=" & Pt(pptT) & _
