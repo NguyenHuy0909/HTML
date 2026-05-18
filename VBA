@@ -1,45 +1,6 @@
-Public Sub AddRangeToArray()
-    Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets("Sheet1")  ' ← Sửa tên sheet nếu cần
-    
-    ' ─────────────────────────────────────────────────────────
-    ' Tìm range từ A1 tới cell trống đầu tiên
-    ' ─────────────────────────────────────────────────────────
-    Dim startCell As Range
-    Set startCell = ws.Range("A1")
-    
-    ' Tìm cột cuối cùng có data (chiều ngang)
-    Dim lastCol As Long
-    lastCol = startCell.End(xlToRight).Column
-    
-    ' Tìm hàng cuối cùng có data (chiều dọc)
-    Dim lastRow As Long
-    lastRow = startCell.End(xlDown).Row
-    
-    ' ─────────────────────────────────────────────────────────
-    ' Xác định range: A1 đến (lastCol, lastRow)
-    ' ─────────────────────────────────────────────────────────
-    Dim sourceRange As Range
-    Set sourceRange = ws.Range(startCell, ws.Cells(lastRow, lastCol))
-    
-    Debug.Print "Range: A1:" & ws.Cells(lastRow, lastCol).Address & _
-                " (" & lastRow & " rows × " & lastCol & " columns)"
-    
-    ' ─────────────────────────────────────────────────────────
-    ' Lấy vào mảng 2 chiều
-    ' ─────────────────────────────────────────────────────────
-    Dim arr As Variant
-    arr = sourceRange.Value2
-    
-    ' ─────────────────────────────────────────────────────────
-    ' Duyệt mảng (bắt đầu từ 1, không phải 0)
-    ' ─────────────────────────────────────────────────────────
-    Dim i As Long, j As Long
-    For i = LBound(arr, 1) To UBound(arr, 1)
-        For j = LBound(arr, 2) To UBound(arr, 2)
-            Debug.Print "arr(" & i & "," & j & ") = " & arr(i, j)
-        Next j
-    Next i
-    
-    Debug.Print "Done. Array: " & UBound(arr, 1) & "×" & UBound(arr, 2)
-End Sub
+Function IsEmptyOrNA(v As Variant) As Boolean
+    If IsError(v) Then IsEmptyOrNA = True: Exit Function
+    Dim s As String
+    s = UCase(Trim(CStr(v)))
+    IsEmptyOrNA = (s = "" Or s = "N/A")
+End Function
