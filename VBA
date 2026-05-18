@@ -1,6 +1,20 @@
-Function IsEmptyOrNA(v As Variant) As Boolean
-    If IsError(v) Then IsEmptyOrNA = True: Exit Function
-    Dim s As String
-    s = UCase(Trim(CStr(v)))
-    IsEmptyOrNA = (s = "" Or s = "N/A")
-End Function
+Dim arr() As Variant
+Dim i As Long, j As Long
+Dim rowCount As Long
+Dim startCell As Range
+
+Set startCell = Range("A1") ' or pass as parameter
+
+' count valid rows based on first column
+rowCount = 0
+Do While Not IsEmptyOrNA(startCell.Offset(rowCount, 0).Value)
+    rowCount = rowCount + 1
+Loop
+
+' load data into 2D array
+ReDim arr(1 To rowCount, 1 To colCount) ' define colCount separately
+For i = 1 To rowCount
+    For j = 1 To colCount
+        arr(i, j) = startCell.Offset(i - 1, j - 1).Value
+    Next j
+Next i
