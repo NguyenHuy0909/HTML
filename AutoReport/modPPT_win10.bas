@@ -85,14 +85,14 @@ Public Sub ExportToPPT()
         Dim lineShp As Shape
         For Each lineShp In ws.Shapes
             If Left$(lineShp.Name, 5) = "Line_" Then
-                ExportLineShape lineShp, sld, bounds, slideH, chartScale, lineWtScale
+                ExportLineShape lineShp, sld, bounds, slideW, slideH, chartScale, lineWtScale
             End If
         Next lineShp
 
         Dim labelShp As Shape
         For Each labelShp In ws.Shapes
             If Left$(labelShp.Name, 9) = "LabelOut_" Then
-                ExportLabelShape labelShp, sld, bounds, slideH, tblFont, lblFontSz, chartScale
+                ExportLabelShape labelShp, sld, bounds, slideW, slideH, tblFont, lblFontSz, chartScale
             End If
         Next labelShp
 
@@ -163,10 +163,11 @@ Private Sub ExportChart(ByVal co As chartObject, ByVal sld As Object, _
     sName = prefix & co.Name
     DeleteByName sld, sName
 
+    Dim scaleX As Double: scaleX = slideW / bounds.Width
     Dim scaleY As Double: scaleY = slideH / bounds.Height
-    Dim pptL As Double: pptL = (co.Left - bounds.Left) * scaleY * chartScale
-    Dim pptT As Double: pptT = (co.Top - bounds.Top) * scaleY * chartScale
-    Dim pptW As Double: pptW = co.Width * scaleY * chartScale
+    Dim pptL As Double: pptL = (co.Left - bounds.Left) * scaleX
+    Dim pptT As Double: pptT = (co.Top - bounds.Top) * scaleY
+    Dim pptW As Double: pptW = co.Width * scaleX * chartScale
     Dim pptH As Double: pptH = co.Height * scaleY * chartScale
 
     co.CopyPicture Appearance:=xlScreen, Format:=xlPicture
@@ -210,14 +211,16 @@ End Function
 ' Type=9 (msoLine): AddConnector in PPT â€” preserves color/dash/weight + lineWtScale.
 ' Oval markers    : AddShape (exact fill color, no outline).
 Private Sub ExportLineShape(ByVal xlShp As Shape, ByVal sld As Object, _
-                             ByVal bounds As Range, ByVal slideH As Double, _
-                             ByVal chartScale As Double, ByVal lineWtScale As Double)
+                             ByVal bounds As Range, ByVal slideW As Double, _
+                             ByVal slideH As Double, ByVal chartScale As Double, _
+                             ByVal lineWtScale As Double)
     DeleteByName sld, xlShp.Name
 
+    Dim scaleX As Double: scaleX = slideW / bounds.Width
     Dim scaleY As Double: scaleY = slideH / bounds.Height
-    Dim pptL   As Double: pptL = (xlShp.Left - bounds.Left) * scaleY * chartScale
-    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleY * chartScale
-    Dim pptW   As Double: pptW = xlShp.Width * scaleY * chartScale
+    Dim pptL   As Double: pptL = (xlShp.Left - bounds.Left) * scaleX
+    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleY
+    Dim pptW   As Double: pptW = xlShp.Width * scaleX * chartScale
     Dim pptH   As Double: pptH = xlShp.Height * scaleY * chartScale
 
     Dim pptShp As Object
@@ -311,15 +314,16 @@ End Sub
 
 ' --- Label shapes (LabelOut_ prefix) ------------------------------------------
 Private Sub ExportLabelShape(ByVal xlShp As Shape, ByVal sld As Object, _
-                              ByVal bounds As Range, ByVal slideH As Double, _
-                              ByVal fontName As String, ByVal fontSize As Double, _
-                              ByVal chartScale As Double)
+                              ByVal bounds As Range, ByVal slideW As Double, _
+                              ByVal slideH As Double, ByVal fontName As String, _
+                              ByVal fontSize As Double, ByVal chartScale As Double)
     DeleteByName sld, xlShp.Name
 
+    Dim scaleX As Double: scaleX = slideW / bounds.Width
     Dim scaleY As Double: scaleY = slideH / bounds.Height
-    Dim pptL   As Double: pptL = (xlShp.Left - bounds.Left) * scaleY * chartScale
-    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleY * chartScale
-    Dim pptW   As Double: pptW = xlShp.Width * scaleY * chartScale
+    Dim pptL   As Double: pptL = (xlShp.Left - bounds.Left) * scaleX
+    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleY
+    Dim pptW   As Double: pptW = xlShp.Width * scaleX * chartScale
     Dim pptH   As Double: pptH = xlShp.Height * scaleY * chartScale
 
     xlShp.CopyPicture Appearance:=xlScreen, Format:=xlPicture
