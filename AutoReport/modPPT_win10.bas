@@ -164,11 +164,10 @@ Private Sub ExportChart(ByVal co As chartObject, ByVal sld As Object, _
     DeleteByName sld, sName
 
     Dim scaleX As Double: scaleX = slideW / bounds.Width
-    Dim scaleY As Double: scaleY = slideH / bounds.Height
     Dim pptL As Double: pptL = (co.Left - bounds.Left) * scaleX
-    Dim pptT As Double: pptT = (co.Top - bounds.Top) * scaleY
+    Dim pptT As Double: pptT = (co.Top - bounds.Top) * scaleX
     Dim pptW As Double: pptW = co.Width * scaleX * chartScale
-    Dim pptH As Double: pptH = co.Height * scaleY * chartScale
+    Dim pptH As Double: pptH = co.Height * scaleX * chartScale
 
     co.CopyPicture Appearance:=xlScreen, Format:=xlPicture
     DoEvents
@@ -217,11 +216,10 @@ Private Sub ExportLineShape(ByVal xlShp As Shape, ByVal sld As Object, _
     DeleteByName sld, xlShp.Name
 
     Dim scaleX As Double: scaleX = slideW / bounds.Width
-    Dim scaleY As Double: scaleY = slideH / bounds.Height
     Dim pptL   As Double: pptL = (xlShp.Left - bounds.Left) * scaleX
-    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleY
+    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleX
     Dim pptW   As Double: pptW = xlShp.Width * scaleX * chartScale
-    Dim pptH   As Double: pptH = xlShp.Height * scaleY * chartScale
+    Dim pptH   As Double: pptH = xlShp.Height * scaleX * chartScale
 
     Dim pptShp As Object
     On Error Resume Next
@@ -320,11 +318,10 @@ Private Sub ExportLabelShape(ByVal xlShp As Shape, ByVal sld As Object, _
     DeleteByName sld, xlShp.Name
 
     Dim scaleX As Double: scaleX = slideW / bounds.Width
-    Dim scaleY As Double: scaleY = slideH / bounds.Height
     Dim pptL   As Double: pptL = (xlShp.Left - bounds.Left) * scaleX
-    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleY
+    Dim pptT   As Double: pptT = (xlShp.Top - bounds.Top) * scaleX
     Dim pptW   As Double: pptW = xlShp.Width * scaleX * chartScale
-    Dim pptH   As Double: pptH = xlShp.Height * scaleY * chartScale
+    Dim pptH   As Double: pptH = xlShp.Height * scaleX * chartScale
 
     xlShp.CopyPicture Appearance:=xlScreen, Format:=xlPicture
     DoEvents
