@@ -1,6 +1,8 @@
-' count columns from first row
-Dim colCount As Long
-colCount = 0
-Do While Not IsEmptyOrNA(startCell.Offset(0, colCount).Value)
-    colCount = colCount + 1
-Loop
+     ║ For modelIdx = LBound(xData, 1) To UBound(xData, 1)       ║
+     ║   For groupIdx = LBound(xData, 2) To UBound(xData, 2)     ║
+     ║     xv = CDbl(xData(modelIdx, groupIdx))                  ║
+     ║     frac = (xv - xMin) / (xMax - xMin)                    ║
+     ║     wsX = paL + frac * paW + xOffsetRgt                   ║
+     ║     DrawVerticalLine(ws, wsX, ...)                        ║
+     ║   Next groupIdx                                           ║
+     ║ Next modelIdx       
