@@ -1,8 +1,86 @@
-     ║ For modelIdx = LBound(xData, 1) To UBound(xData, 1)       ║
-     ║   For groupIdx = LBound(xData, 2) To UBound(xData, 2)     ║
-     ║     xv = CDbl(xData(modelIdx, groupIdx))                  ║
-     ║     frac = (xv - xMin) / (xMax - xMin)                    ║
-     ║     wsX = paL + frac * paW + xOffsetRgt                   ║
-     ║     DrawVerticalLine(ws, wsX, ...)                        ║
-     ║   Next groupIdx                                           ║
-     ║ Next modelIdx       
+' =============================================================================
+' modArrange.ProcessGroup — Tính tọa độ line và vẽ
+'   xData(modelIdx, groupIdx): mảng 2 chiều chứa giá trị X
+'     chiều dọc  (dim 1) = model index
+'     chiều ngang (dim 2) = group index
+' =============================================================================
+Private Function ProcessGroup(ByVal ws As Worksheet, _
+                              ByVal topName As String, _
+                              ByVal botName As String, _
+                              ByRef xData As Variant, _       ' ← THAY addrCSV
+                              ByVal lineNameBase As String, _
+                              ByVal xOffsetRgt As Double, _
+                              ByVal xOffsetBot As Double, _
+                              ByVal xLineLen As Double, _
+                              ByRef lineColors() As Long) As Long
+    ' ─────────────────────────────────────────────────────────
+    ' Lấy chart top & bottom
+    ' ─────────────────────────────────────────────────────────
+    Dim topCo As ChartObject, botCo As ChartObject
+    On Error Resume Next
+    Set topCo = ws.ChartObjects(topName)
+    Set botCo = ws.ChartObjects(botName)
+    On Error GoTo 0
+    If topCo Is Nothing Or botCo Is Nothing Then
+        Debug.Print "modArrange.ProcessGroup: chart missing on " & ws.Name & _
+                    " (top=" & topName & " bot=" & botName & ")"
+        Exit Function
+    End If
+
+    Dim topCht As Chart
+    Set topCht = topCo.Chart
+
+    ' ─────────────────────────────────────────────────────────
+    ' Đọc X-axis scale từ chart
+    ' ─────────────────────────────────────────────────────────
+    Dim xMin As Double, xMax As Double
+    If Not ReadChartXScale(topCht, xMin, xMax) Then
+        Debug.Print "modArrange.ProcessGroup: cannot read X axis on " & topName
+        Exit Function
+    End If
+    If xMax = xMin Then
+        Debug.Print "modArrange.ProcessGroup: xMin = xMax on " & topName
+        Exit Function
+    End If
+
+    ' ─────────────────────────────────────────────────────────
+    ' Tính tọa độ Y 2 đầu của line
+    ' ─────────────────────────────────────────────────────────
+    Dim paL As Double, paW As Double
+    paL = topCo.Left + topCht.PlotArea.InsideLeft
+    paW = topCht.PlotArea.InsideWidth
+
+    Dim lineTop As Double, lineBot As Double
+    lineTop = topCo.Top + topCht.PlotArea.InsideTop + HalfYLabelHeight(topCht) - xLineLen
+    lineBot = botCo.Top + botCo.Chart.PlotArea.InsideTop + _
+              botCo.Chart.PlotArea.InsideHeight + xOffsetBot + xLineLen
+
+    ' ─────────────────────────────────────────────────────────
+    ' Lặp qua mảng xData(modelIdx, groupIdx) — vẽ từng line
+    ' ─────────────────────────────────────────────────────────
+    Dim modelIdx As Long, groupIdx As Long
+    Dim xv As Double, frac As Double, wsX As Double
+    Dim drawn As Long
+
+    For modelIdx = LBound(xData, 1) To UBound(xData, 1)       ' ← Hàng: model
+        For groupIdx = LBound(xData, 2) To UBound(xData, 2)   ' ← Cột: group
+            If Not IsNumeric(xData(modelIdx, groupIdx)) Then
+                Debug.Print "modArrange.ProcessGroup: xData(" & modelIdx & "," & groupIdx & ") not numeric"
+                GoTo NextGroup
+            End If
+
+            xv   = CDbl(xData(modelIdx, groupIdx))
+            frac = (xv - xMin) / (xMax - xMin)
+            wsX  = paL + frac * paW + xOffsetRgt
+
+            DrawVerticalLine ws, wsX, lineTop, lineBot, _
+                             lineNameBase & "_M" & modelIdx & "_G" & groupIdx, _
+                             lineColors(groupIdx Mod 3)
+            drawn = drawn + 1
+
+NextGroup:
+        Next groupIdx
+    Next modelIdx
+
+    ProcessGroup = drawn
+End Function
