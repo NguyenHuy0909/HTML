@@ -1,7 +1,0 @@
-﻿ShapeName,SlideIdx,SourceType,SourceRef,DefaultLeft,DefaultTop,DefaultWidth,DefaultHeight,Step2Model1ScoreRange,Part1Range,Part1CellWidthPt,Part1CellHeightPt,Part1FontSizePt
-XL_DataTable,1,RangeTable,AD7:AY12,20,15,874,72,,AD7:AD12,40,10,10
-XL_Group1,1,GroupImage,Chart 1|Chart 2|Chart 3|Chart 100,0,95,100,0,AF10:AH10,Part2Range,Part2CellWidthPt,Part2CellHeightPt,Part2FontSizePt
-XL_Group2,1,GroupImage,Chart 5|Chart 6|Chart 7|Chart 101,0,0,0,0,AJ10:AL10,AE7:AE12,120,10,10
-XL_Group3,1,GroupImage,Chart 9|Chart 10|Chart 11|Chart 102,0,0,0,0,AN10:AP10,Part3Range,Part3CellWidthPt,Part3CellHeightPt,Part3FontSizePt
-XL_Group4,1,GroupImage,Chart 13|Chart 14|Chart 15|Chart 103,0,0,0,0,AR10:AT10,AF7:AY12,40,10,10
-XL_Group5,1,GroupImage,Chart 16|Chart 17|Chart 18|Chart 104,0,0,0,0,AV10:AX10,,,,
