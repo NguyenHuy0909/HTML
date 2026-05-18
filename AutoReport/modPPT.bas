@@ -1,9 +1,10 @@
+Attribute VB_Name = "modPPT_win10"
 Option Explicit
 
 ' =============================================================================
-' PPT export: offset-based positioning from PPT_SlideBounds.Left/Top.
-' Charts exported as SVG (vector) via Chart.Export + Shapes.AddPicture.
-' DataTable pasted as HTML via clipboard.
+' PPT export for Windows 10 / older PowerPoint builds.
+' Charts are copied from Excel and pasted into PowerPoint as Enhanced Metafile.
+' This avoids SVG rendering issues while keeping chart text and lines crisp.
 '
 ' All settings read from ExportConfig sheet via modConfig.
 ' Entry point: ExportToPPT
@@ -13,6 +14,9 @@ Private Const ppPasteHTML             As Long = 8
 Private Const ppPasteEnhancedMetafile As Long = 2
 Private Const msoFalse                As Long = 0
 Private Const msoTrue                 As Long = -1
+Private Const xlScreen                As Long = 1
+Private Const xlPicture               As Long = -4147
+Private Const PASTE_RETRY_COUNT       As Long = 5
 
 ' =============================================================================
 Public Sub ExportToPPT()
@@ -23,7 +27,6 @@ Public Sub ExportToPPT()
 
     modConfig.InvalidateCache
 
-    ' --- Read all config up front ---
     Dim boundsName  As String: boundsName = modConfig.CfgStr("SlideBoundsName", "PPT_SlideBounds")
     Dim tableName   As String: tableName = modConfig.CfgStr("DataTableName", "PPT_XL_DataTable")
     Dim chartPfx    As String: chartPfx = modConfig.CfgStr("ChartShapePrefix", "Chart_")
@@ -32,12 +35,11 @@ Public Sub ExportToPPT()
     Dim tblFontSz   As Double: tblFontSz = modConfig.CfgDbl("DataTableFontSize", 0)
     Dim lblFontSz   As Double: lblFontSz = modConfig.CfgDbl("LabelFontSize", 0)
 
-
     Dim pres As Object: Set pres = OpenPres()
     If pres Is Nothing Then
         Debug.Print "ExportToPPT: cannot open presentation": GoTo CleanExit
     End If
-    Debug.Print "=== ExportToPPT start: " & pres.Name & " (" & pres.Slides.count & " slides) ==="
+    Debug.Print "=== ExportToPPT_win10 start: " & pres.Name & " (" & pres.Slides.Count & " slides) ==="
 
     Dim slideW As Double: slideW = pres.PageSetup.SlideWidth
     Dim slideH As Double: slideH = pres.PageSetup.SlideHeight
@@ -52,7 +54,7 @@ Public Sub ExportToPPT()
     For Each ws In ThisWorkbook.Worksheets
         Dim slideIdx As Long
         slideIdx = SlideIdxFromConfig(ws.Name)
-        If slideIdx < 1 Or slideIdx > pres.Slides.count Then GoTo NextSheet
+        If slideIdx < 1 Or slideIdx > pres.Slides.Count Then GoTo NextSheet
 
         Dim bounds As Range
         Set bounds = modLayout.FindNamedRange(ws, boundsName)
@@ -64,23 +66,19 @@ Public Sub ExportToPPT()
 
         Dim sld As Object: Set sld = pres.Slides(slideIdx)
 
-        ' Navigate PPT view to this slide so PasteSpecial targets it correctly
         On Error Resume Next
         pres.Application.ActiveWindow.View.GotoSlide slideIdx
         On Error GoTo CleanFail
 
-        ' DataTable
         Dim dtRng As Range
         Set dtRng = modLayout.FindNamedRange(ws, tableName)
         If Not dtRng Is Nothing Then ExportTable dtRng, sld, bounds, tblShpName, slideW, slideH, tblFont, tblFontSz
 
-        ' All charts on this sheet
-        Dim co As chartObject
-        For Each co In ws.chartObjects
+        Dim co As ChartObject
+        For Each co In ws.ChartObjects
             ExportChart co, sld, bounds, chartPfx, slideW, slideH
         Next co
 
-        ' All line shapes (prefix "Line_") â€” lines + circle markers
         Dim lineShp As Shape
         For Each lineShp In ws.Shapes
             If Left$(lineShp.Name, 5) = "Line_" Then
@@ -88,7 +86,6 @@ Public Sub ExportToPPT()
             End If
         Next lineShp
 
-        ' All label shapes (prefix "LabelOut_") â€” textbox copies from modShape
         Dim labelShp As Shape
         For Each labelShp In ws.Shapes
             If Left$(labelShp.Name, 9) = "LabelOut_" Then
@@ -98,13 +95,13 @@ Public Sub ExportToPPT()
 
 NextSheet:
     Next ws
-    Debug.Print "=== ExportToPPT done ==="
+    Debug.Print "=== ExportToPPT_win10 done ==="
 
 CleanExit:
     Application.EnableEvents = prevEvents
     Exit Sub
 CleanFail:
-    Debug.Print "[ERROR] ExportToPPT: " & Err.Number & " - " & Err.Description
+    Debug.Print "[ERROR] ExportToPPT_win10: " & Err.Number & " - " & Err.Description
     Resume CleanExit
 End Sub
 
@@ -115,10 +112,11 @@ Private Sub ExportTable(ByVal rng As Range, ByVal sld As Object, _
                          ByVal fontName As String, ByVal fontSize As Double)
     DeleteByName sld, shapeName
     rng.Copy
+
     Dim shp As Object
     On Error Resume Next
     Err.Clear
-    Set shp = sld.Shapes.PasteSpecial(ppPasteHTML)
+    Set shp = sld.Shapes.PasteSpecial(DataType:=ppPasteHTML)
     On Error GoTo 0
     Application.CutCopyMode = False
     If shp Is Nothing Then Debug.Print "  [ERR] DataTable paste failed": Exit Sub
@@ -143,16 +141,18 @@ Private Sub ApplyTableFont(ByVal tbl As Object, _
                             ByVal fontName As String, ByVal fontSize As Double)
     If Len(fontName) = 0 And fontSize <= 0 Then Exit Sub
     Dim r As Long, c As Long
-    For r = 1 To tbl.rows.count
-        For c = 1 To tbl.Columns.count
-            With tbl.cell(r, c).Shape.TextFrame.TextRange.Font
+    For r = 1 To tbl.Rows.Count
+        For c = 1 To tbl.Columns.Count
+            With tbl.Cell(r, c).Shape.TextFrame.TextRange.Font
                 If Len(fontName) > 0 Then .Name = fontName
                 If fontSize > 0 Then .Size = fontSize
             End With
         Next c
     Next r
 End Sub
-Private Sub ExportChart(ByVal co As chartObject, ByVal sld As Object, _
+
+' --- Charts -------------------------------------------------------------------
+Private Sub ExportChart(ByVal co As ChartObject, ByVal sld As Object, _
                          ByVal bounds As Range, ByVal prefix As String, _
                          ByVal slideW As Double, ByVal slideH As Double)
     Dim sName As String
@@ -165,41 +165,60 @@ Private Sub ExportChart(ByVal co As chartObject, ByVal sld As Object, _
     Dim pptW As Double: pptW = co.Width * scaleY
     Dim pptH As Double: pptH = co.Height * scaleY
 
-    Dim tmpFile As String
-    tmpFile = Environ("TEMP") & "\" & Replace(co.Name, " ", "_") & ".svg"
-
-    On Error Resume Next
-    Err.Clear
-    co.Chart.Export Filename:=tmpFile, FilterName:="SVG"
-    Dim expErr As Long: expErr = Err.Number
-    On Error GoTo 0
-    If expErr <> 0 Then
-        Debug.Print "  [ERR] SVG export '" & co.Name & "': " & expErr
-        Exit Sub
-    End If
-
     Dim shp As Object
-    On Error Resume Next
-    Err.Clear
-    Set shp = sld.Shapes.AddPicture(tmpFile, msoFalse, msoTrue, pptL, pptT, pptW, pptH)
-    Dim insErr As Long: insErr = Err.Number
-    On Error GoTo 0
-
-    On Error Resume Next: Kill tmpFile: On Error GoTo 0
-
-    If insErr <> 0 Or shp Is Nothing Then
-        Debug.Print "  [ERR] " & sName & " AddPicture failed (" & insErr & ")"
+    Set shp = PasteChartAsEnhancedMetafile(co, sld)
+    If shp Is Nothing Then
+        Debug.Print "  [ERR] " & sName & " CopyPicture/PasteSpecial failed"
         Exit Sub
     End If
 
-    shp.Name = sName
+    With shp
+        .Name = sName
+        .LockAspectRatio = msoFalse
+        .Left = pptL
+        .Top = pptT
+        .Width = pptW
+        .Height = pptH
+    End With
+
     Debug.Print "  [OK] " & sName & " L=" & Pt(pptL) & " T=" & Pt(pptT) & _
                 " W=" & Pt(pptW) & " H=" & Pt(pptH)
 End Sub
 
+Private Function PasteChartAsEnhancedMetafile(ByVal co As ChartObject, _
+                                              ByVal sld As Object) As Object
+    Dim attempt As Long
+    Dim sr As Object
+
+    For attempt = 1 To PASTE_RETRY_COUNT
+        On Error Resume Next
+        Err.Clear
+        co.Parent.Activate
+        co.CopyPicture Appearance:=xlScreen, Format:=xlPicture
+        DoEvents
+        Set sr = sld.Shapes.PasteSpecial(DataType:=ppPasteEnhancedMetafile)
+        If Err.Number = 0 And Not sr Is Nothing Then
+            Set PasteChartAsEnhancedMetafile = FirstShapeFromPaste(sr)
+            Application.CutCopyMode = False
+            On Error GoTo 0
+            Exit Function
+        End If
+        Debug.Print "  [WARN] chart paste retry " & attempt & "/" & PASTE_RETRY_COUNT & _
+                    " '" & co.Name & "': " & Err.Number & " - " & Err.Description
+        Application.CutCopyMode = False
+        On Error GoTo 0
+        DoEvents
+    Next attempt
+End Function
+
+Private Function FirstShapeFromPaste(ByVal pasted As Object) As Object
+    On Error Resume Next
+    Set FirstShapeFromPaste = pasted.Item(1)
+    If FirstShapeFromPaste Is Nothing Then Set FirstShapeFromPaste = pasted
+    On Error GoTo 0
+End Function
+
 ' --- Line shapes (Line_ prefix) -----------------------------------------------
-' msoLine (Type=9)  : CopyPicture + PasteSpecial(EMF), scale Left/Top/Height.
-' Oval markers      : AddShape (exact color, no distortion), scale all dims.
 Private Sub ExportLineShape(ByVal xlShp As Shape, ByVal sld As Object, _
                              ByVal bounds As Range, ByVal slideH As Double)
     DeleteByName sld, xlShp.Name
@@ -215,10 +234,9 @@ Private Sub ExportLineShape(ByVal xlShp As Shape, ByVal sld As Object, _
     Err.Clear
 
     If xlShp.Type = 9 Then
-        ' â”€â”€ Dashed vertical line â€” CopyPicture (preserves dash style exactly) â”€â”€
         xlShp.CopyPicture Appearance:=xlScreen, Format:=xlPicture
         DoEvents
-        Set pptShp = sld.Shapes.PasteSpecial(ppPasteEnhancedMetafile)
+        Set pptShp = sld.Shapes.PasteSpecial(DataType:=ppPasteEnhancedMetafile)
         Dim pasteErr As Long: pasteErr = Err.Number
         On Error GoTo 0
         Application.CutCopyMode = False
@@ -227,6 +245,7 @@ Private Sub ExportLineShape(ByVal xlShp As Shape, ByVal sld As Object, _
             Exit Sub
         End If
         On Error Resume Next
+        Set pptShp = FirstShapeFromPaste(pptShp)
         pptShp.LockAspectRatio = msoFalse
         pptShp.Left = pptL
         pptShp.Top = pptT
@@ -235,7 +254,6 @@ Private Sub ExportLineShape(ByVal xlShp As Shape, ByVal sld As Object, _
         pptShp.Name = xlShp.Name
         On Error GoTo 0
     Else
-        ' â”€â”€ Oval marker â€” AddShape (exact color, no distortion) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         Set pptShp = sld.Shapes.AddShape(9, pptL, pptT, pptW, pptH)
         If Err.Number = 0 And Not pptShp Is Nothing Then
             pptShp.Line.Visible = msoFalse
@@ -255,12 +273,11 @@ Private Function OpenPres() As Object
         Debug.Print "OpenPres: PptxPath not configured": Exit Function
     End If
 
-    ' Resolve relative path against workbook folder
     Dim pptxPath As String
     If Mid$(cfgPath, 2, 1) = ":" Or Left$(cfgPath, 2) = "\\" Then
         pptxPath = cfgPath
     Else
-        pptxPath = ThisWorkbook.path & "\" & cfgPath
+        pptxPath = ThisWorkbook.Path & "\" & cfgPath
     End If
 
     Dim pptApp As Object
@@ -272,10 +289,9 @@ Private Function OpenPres() As Object
         pptApp.Visible = True
     End If
 
-    ' Detect already-open presentation by full path
     Dim p As Object
     For Each p In pptApp.Presentations
-        If StrComp(p.fullName, pptxPath, vbTextCompare) = 0 Then
+        If StrComp(p.FullName, pptxPath, vbTextCompare) = 0 Then
             Set OpenPres = p: Exit Function
         End If
     Next p
@@ -284,17 +300,14 @@ End Function
 
 Private Sub DeleteByName(ByVal sld As Object, ByVal sName As String)
     Dim i As Long
-    For i = sld.Shapes.count To 1 Step -1
+    For i = sld.Shapes.Count To 1 Step -1
         If StrComp(sld.Shapes(i).Name, sName, vbTextCompare) = 0 Then
             sld.Shapes(i).Delete
         End If
     Next i
 End Sub
 
-
-' --- Label shapes (LabelOut_ prefix) ----------------------------------------
-' CopyPicture + PasteSpecial(EMF) â€” scale Left/Top/Width/Height báº±ng scaleY.
-' fontName / fontSize: láº¥y chung tá»« DataTableFontName / DataTableFontSize (config).
+' --- Label shapes (LabelOut_ prefix) ------------------------------------------
 Private Sub ExportLabelShape(ByVal xlShp As Shape, ByVal sld As Object, _
                               ByVal bounds As Range, ByVal slideH As Double, _
                               ByVal fontName As String, ByVal fontSize As Double)
@@ -312,7 +325,7 @@ Private Sub ExportLabelShape(ByVal xlShp As Shape, ByVal sld As Object, _
     Dim pptShp As Object
     On Error Resume Next
     Err.Clear
-    Set pptShp = sld.Shapes.PasteSpecial(ppPasteEnhancedMetafile)
+    Set pptShp = sld.Shapes.PasteSpecial(DataType:=ppPasteEnhancedMetafile)
     Dim pasteErr As Long: pasteErr = Err.Number
     On Error GoTo 0
     Application.CutCopyMode = False
@@ -323,6 +336,7 @@ Private Sub ExportLabelShape(ByVal xlShp As Shape, ByVal sld As Object, _
     End If
 
     On Error Resume Next
+    Set pptShp = FirstShapeFromPaste(pptShp)
     pptShp.LockAspectRatio = msoFalse
     pptShp.Left = pptL
     pptShp.Top = pptT
@@ -341,8 +355,6 @@ Private Function Pt(ByVal v As Double) As String
     Pt = Format$(v, "0.0")
 End Function
 
-' Read "PPT Slide" for a given SHEET NAME from the ExportConfig data table.
-' Returns 0 if not found.
 Private Function SlideIdxFromConfig(ByVal sheetName As String) As Long
     Dim cfgWs As Worksheet
     Set cfgWs = modConfig.GetConfigSheet()
@@ -374,4 +386,3 @@ Private Function SlideIdxFromConfig(ByVal sheetName As String) As Long
         End If
     Next r
 End Function
-
