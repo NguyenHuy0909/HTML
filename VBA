@@ -1,20 +1,6 @@
-Dim arr() As Variant
-Dim i As Long, j As Long
-Dim rowCount As Long
-Dim startCell As Range
-
-Set startCell = Range("A1") ' or pass as parameter
-
-' count valid rows based on first column
-rowCount = 0
-Do While Not IsEmptyOrNA(startCell.Offset(rowCount, 0).Value)
-    rowCount = rowCount + 1
+' count columns from first row
+Dim colCount As Long
+colCount = 0
+Do While Not IsEmptyOrNA(startCell.Offset(0, colCount).Value)
+    colCount = colCount + 1
 Loop
-
-' load data into 2D array
-ReDim arr(1 To rowCount, 1 To colCount) ' define colCount separately
-For i = 1 To rowCount
-    For j = 1 To colCount
-        arr(i, j) = startCell.Offset(i - 1, j - 1).Value
-    Next j
-Next i
