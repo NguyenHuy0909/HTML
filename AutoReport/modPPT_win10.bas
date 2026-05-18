@@ -104,8 +104,8 @@ CleanExit:
     Application.EnableEvents = prevEvents
     Exit Sub
 CleanFail:
-    Debug.Print "[ERROR] ExportToPPT_win10: " & Err.Number & " - " & Err.Description
-    Resume CleanExit
+    Debug.Print "[ERROR] " & ws.Name & ": " & Err.Number & " - " & Err.Description
+    Resume NextSheet
 End Sub
 
 ' --- DataTable ----------------------------------------------------------------
@@ -169,19 +169,25 @@ Private Sub ExportChart(ByVal co As chartObject, ByVal sld As Object, _
     Dim pptW As Double: pptW = co.Width * scaleX * chartScale
     Dim pptH As Double: pptH = co.Height * scaleX * chartScale
 
-    co.CopyPicture Appearance:=xlScreen, Format:=xlPicture
-    DoEvents
-
     Dim pptShp As Object
+    Dim pasteErr As Long
+    Dim attempt  As Long
     On Error Resume Next
-    Err.Clear
-    Set pptShp = sld.Shapes.PasteSpecial(DataType:=ppPasteEnhancedMetafile)
-    Dim pasteErr As Long: pasteErr = Err.Number
+    For attempt = 1 To 3
+        co.CopyPicture Appearance:=xlScreen, Format:=xlPicture
+        DoEvents
+        Err.Clear
+        Set pptShp = sld.Shapes.PasteSpecial(DataType:=ppPasteEnhancedMetafile)
+        pasteErr = Err.Number
+        Application.CutCopyMode = False
+        If pasteErr = 0 And Not pptShp Is Nothing Then Exit For
+        Debug.Print "  [RETRY " & attempt & "] " & co.Name & " err=" & pasteErr
+        DoEvents
+    Next attempt
     On Error GoTo 0
-    Application.CutCopyMode = False
 
     If pasteErr <> 0 Or pptShp Is Nothing Then
-        Debug.Print "  [ERR] ExportChart paste '" & co.Name & "': " & pasteErr
+        Debug.Print "  [ERR] ExportChart failed after 3 attempts: " & co.Name
         Exit Sub
     End If
 
